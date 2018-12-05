@@ -779,7 +779,7 @@ class softTweakManager(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
 
 def openSoftTweakManager(*args):
-    pyqt.showDialog(softTweakManager)
+    pyqt.showDialog(softTweakManager, dockable=True)
 
 
 if __name__ == "__main__":

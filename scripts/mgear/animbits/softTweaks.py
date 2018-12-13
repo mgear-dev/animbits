@@ -506,6 +506,12 @@ class softTweakManagerUI(QtWidgets.QMainWindow, stUI.Ui_MainWindow):
     def __init__(self, parent=None):
         super(softTweakManagerUI, self).__init__(parent)
         self.setupUi(self)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+        self.installEventFilter(self)
+
+    def keyPressEvent(self, event):
+        if not event.key() == QtCore.Qt.Key_Escape:
+            super(softTweakManagerUI, self).keyPressEvent(event)
 
 
 class softTweakManager(MayaQWidgetDockableMixin, QtWidgets.QDialog):
@@ -526,6 +532,11 @@ class softTweakManager(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self._refreshList()
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+        self.installEventFilter(self)
+
+    def keyPressEvent(self, event):
+        if not event.key() == QtCore.Qt.Key_Escape:
+            super(softTweakManager, self).keyPressEvent(event)
 
     def setup_softTweakManagerrWindow(self):
 

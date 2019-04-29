@@ -8,7 +8,7 @@ from maya import cmds
 # ==============================================================================
 
 _MANAGER_RIG_ATTRIBUTE = os.getenv("MGEAR_CACHE_MANAGER_RIG_ATTRIBUTE")
-
+_MANAGER_CACHE_DESTINATION = os.getenv("MGEAR_CACHE_MANAGER_CACHE_DESTINATION")
 # ==============================================================================
 
 

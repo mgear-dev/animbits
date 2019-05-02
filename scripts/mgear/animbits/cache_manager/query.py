@@ -61,9 +61,9 @@ def get_preference_file_cache_destination_path():
         with open(_file, 'r') as file_r:
             json_dict = json.load(file_r)
             return json_dict["preferences"]["cache_path"]
-    except Exception as issue:
+    except Exception as e:
         message = "Contact mGear's developers reporting this issue to get help"
-        print("{} - {} / {}".format(type(issue).__name__, issue,
+        print("{} - {} / {}".format(type(e).__name__, e,
                                     message))
         return None
 

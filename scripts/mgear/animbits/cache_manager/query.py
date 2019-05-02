@@ -59,8 +59,16 @@ def get_preference_file_cache_destination_path():
 
     try:
         with open(_file, 'r') as file_r:
+
+            # reads json file and get the cache path
             json_dict = json.load(file_r)
-            return json_dict["preferences"]["cache_path"]
+            value = json_dict["preferences"][0]["cache_manager_cache_path"]
+
+            # checks if path is empty and returns
+            if len(value) == 0:
+                return
+            return value
+
     except Exception as e:
         message = "Contact mGear's developers reporting this issue to get help"
         print("{} - {} / {}".format(type(e).__name__, e,

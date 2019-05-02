@@ -51,14 +51,14 @@ def get_preference_file_cache_destination_path():
     """
 
     # preference file
-    _file = get_preference_file_name()
+    pref_file = get_preference_file()
 
     # checks if file exists and its an actual file
-    if not os.path.isfile(_file):
+    if not os.path.isfile(pref_file):
         return None
 
     try:
-        with open(_file, 'r') as file_r:
+        with open(pref_file, 'r') as file_r:
 
             # reads json file and get the cache path
             json_dict = json.load(file_r)
@@ -83,11 +83,11 @@ def get_preference_file_cache_destination_path():
         return None
 
 
-def get_preference_file_name():
-    """ Returns the preference file name
+def get_preference_file():
+    """ Returns the preference file path and name
 
     Returns:
-        str: preference file name
+        str: preference file path and name
     """
 
     return "{}/{}".format(_MANAGER_PREFERENCE_PATH, _MANAGER_PREFERENCE_FILE)

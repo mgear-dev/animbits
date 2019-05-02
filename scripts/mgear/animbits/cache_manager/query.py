@@ -51,7 +51,7 @@ def get_preference_file_cache_destination_path():
     """
 
     # preference file
-    _file = "{}/{}".format(_MANAGER_PREFERENCE_PATH, _MANAGER_PREFERENCE_FILE)
+    _file = get_preference_file_name()
 
     # checks if file exists and its an actual file
     if not os.path.isfile(_file):
@@ -81,6 +81,16 @@ def get_preference_file_cache_destination_path():
         print("{} - {} / {}".format(type(e).__name__, e,
                                     message))
         return None
+
+
+def get_preference_file_name():
+    """ Returns the preference file name
+
+    Returns:
+        str: preference file name
+    """
+
+    return "{}/{}".format(_MANAGER_PREFERENCE_PATH, _MANAGER_PREFERENCE_FILE)
 
 
 def get_scene_rigs():

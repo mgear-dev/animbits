@@ -4,8 +4,7 @@ from __future__ import absolute_import
 import os
 import json
 from mgear.animbits.cache_manager.query import _MANAGER_PREFERENCE_PATH
-from mgear.animbits.cache_manager.query import _MANAGER_PREFERENCE_FILE
-from mgear.animbits.cache_manager.query import get_preference_file_name
+from mgear.animbits.cache_manager.query import get_preference_file
 
 
 def __create_preference_folder():
@@ -36,7 +35,7 @@ def __create_preference_file():
 
     try:
         # creates file
-        pref_file = open(get_preference_file_name(), "w")
+        pref_file = open(get_preference_file(), "w")
 
         # creates the data structure
         data = {}
@@ -59,7 +58,7 @@ def create_cache_manager_preference_file():
                      None if failed
     """
 
-    pref_file = get_preference_file_name()
+    pref_file = get_preference_file()
 
     if not os.path.exists(pref_file):
         __create_preference_folder()
@@ -75,4 +74,25 @@ def set_preference_file_cache_destination(cache_path):
         cache_path (str): The folder path for the cache files
     """
 
-    pass
+    # preference file
+    pref_file = get_preference_file()
+
+    try:
+        # reads file
+        pref_file = open(get_preference_file(), "r")
+
+        # edits path
+        data = json.load(pref_file)
+        data["preferences"][0]["cache_manager_cache_path"] = cache_path
+        pref_file.close()
+
+        # writes file
+        pref_file = open(get_preference_file(), "w")
+        json.dump(data, pref_file, indent=4)
+        pref_file.close()
+
+    except Exception as e:
+        message = "Contact mGear's developers reporting this issue to get help"
+        print("{} - {} / {}".format(type(e).__name__, e,
+                                    message))
+        return None

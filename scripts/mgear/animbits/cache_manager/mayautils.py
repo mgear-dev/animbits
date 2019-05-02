@@ -29,8 +29,8 @@ def __create_preference_file():
     is defined by the MAYA_APP_DIR environment variable and it's name by the
     _MANAGER_PREFERENCE_FILE constant
 
-    :return: Path to the preference file
-    :rtype: str
+    Returns:
+        str: Path to the preference file
     """
 
     try:
@@ -54,9 +54,9 @@ def __create_preference_file():
 def create_cache_manager_preference_file():
     """ Creates the Animbits cache manager preference file
 
-    :return: Path to the preference file if existing or created one.
-             None if failed
-    :rtype: str or None
+    Returns:
+        str or None: Path to the preference file if existing or created one.
+                     None if failed
     """
 
     pref_file = "{}/{}".format(_MANAGER_PREFERENCE_PATH,
@@ -67,3 +67,10 @@ def create_cache_manager_preference_file():
         pref_file = __create_preference_file()
 
     return pref_file
+
+
+def set_preference_file_cache_destination(cache_path):
+    """ Sets the Cache Manager cache destination path into the preference file
+    """
+
+    pass

@@ -67,6 +67,13 @@ def get_preference_file_cache_destination_path():
             # checks if path is empty and returns
             if len(value) == 0:
                 return
+
+            # lastly we validate the path existence
+            if not os.path.exists(value):
+                print("Path {} saved on the preference file doesn't exist"
+                      .format(value))
+                return None
+
             return value
 
     except Exception as e:

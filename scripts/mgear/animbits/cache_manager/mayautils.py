@@ -5,6 +5,7 @@ import os
 import json
 from mgear.animbits.cache_manager.query import _MANAGER_PREFERENCE_PATH
 from mgear.animbits.cache_manager.query import _MANAGER_PREFERENCE_FILE
+from mgear.animbits.cache_manager.query import get_preference_file_name
 
 
 def __create_preference_folder():
@@ -35,8 +36,7 @@ def __create_preference_file():
 
     try:
         # creates file
-        pref_file = open("{}/{}".format(_MANAGER_PREFERENCE_PATH,
-                                        _MANAGER_PREFERENCE_FILE), "w")
+        pref_file = open(get_preference_file_name(), "w")
 
         # creates the data structure
         data = {}
@@ -59,8 +59,7 @@ def create_cache_manager_preference_file():
                      None if failed
     """
 
-    pref_file = "{}/{}".format(_MANAGER_PREFERENCE_PATH,
-                               _MANAGER_PREFERENCE_FILE)
+    pref_file = get_preference_file_name()
 
     if not os.path.exists(pref_file):
         __create_preference_folder()
@@ -71,6 +70,9 @@ def create_cache_manager_preference_file():
 
 def set_preference_file_cache_destination(cache_path):
     """ Sets the Cache Manager cache destination path into the preference file
+
+    Args:
+        cache_path (str): The folder path for the cache files
     """
 
     pass

@@ -2,6 +2,7 @@
 # imports
 from __future__ import absolute_import
 import os
+import re
 import json
 from maya import cmds
 from mgear.animbits.cache_manager.query import _MANAGER_PREFERENCE_PATH
@@ -97,6 +98,8 @@ def generate_gpu_cache(geo_node, cache_name, start, end, rig_node, lock=False):
     cache_destination = get_cache_destination_path()
 
     try:
+
+        file_name = re.sub('[^\w_.)( -]', '_', cache_name)
         # Runs the GPU cache generation
         gpu_file = cmds.gpuCache("{}".format(geo_node),
                                  startTime=start,
@@ -105,7 +108,7 @@ def generate_gpu_cache(geo_node, cache_name, start, end, rig_node, lock=False):
                                  optimizationThreshold=4000,
                                  writeMaterials=True,
                                  directory=cache_destination,
-                                 fileName=cache_name,
+                                 fileName=file_name,
                                  showStats=True,
                                  useBaseTessellation=False)
 

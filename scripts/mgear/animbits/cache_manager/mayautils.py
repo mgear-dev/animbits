@@ -81,6 +81,10 @@ def generate_gpu_cache(geo_node, cache_name, start, end):
     """
     """
 
+    # checks for plugin load
+    __check_gpu_plugin()
+
+    # gets cache destination path
     cache_destination = get_cache_destination_path()
 
     # Runs the GPU cache generation

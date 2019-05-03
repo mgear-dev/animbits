@@ -110,3 +110,21 @@ def get_scene_rigs():
                                                  recursive=True)]
 
     return rigs or None
+
+
+def get_timeline_values():
+    """ Returns the min and max keyframe values from the current playback range
+
+    In order to give more freedom to the artist we always evaluate the playback
+    range and not the animation range so that artists can choose what range
+    to use when creating the GPU cache
+
+    Returns:
+        float, float: min and max value
+    """
+
+    # get user timeline playback frame range
+    _min = cmds.playbackOptions(query=True, minTime=True)
+    _max = cmds.playbackOptions(query=True, maxTime=True)
+
+    return _min, _max

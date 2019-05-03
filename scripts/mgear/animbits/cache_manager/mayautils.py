@@ -77,8 +77,17 @@ def create_cache_manager_preference_file():
     return pref_file
 
 
-def generate_gpu_cache(geo_node, cache_name, start, end):
-    """
+def generate_gpu_cache(geo_node, cache_name, start, end, rig_node, lock=False):
+    """ Generates a GPU representation for shapes found under the geo_node
+
+    Args:
+        geo_node (str): geometry group transform node containing the shapes to
+                        cache
+        cache_name (str): file name to use for the gpu cache file
+        start (float): start frame to use
+        end (float): end frame to use
+        rig_node (str): Rig root node containing the geo_node
+        lock (bool): Whether or not the gpu cache node should be locked
     """
 
     # checks for plugin load
@@ -87,17 +96,35 @@ def generate_gpu_cache(geo_node, cache_name, start, end):
     # gets cache destination path
     cache_destination = get_cache_destination_path()
 
-    # Runs the GPU cache generation
-    gpu_file = cmds.gpuCache("{}".format(geo_node),
-                             startTime=start,
-                             endTime=end,
-                             optimize=True,
-                             optimizationThreshold=4000,
-                             writeMaterials=True,
-                             directory=cache_destination,
-                             fileName=cache_name)
+    try:
+        # Runs the GPU cache generation
+        gpu_file = cmds.gpuCache("{}".format(geo_node),
+                                 startTime=start,
+                                 endTime=end,
+                                 optimize=True,
+                                 optimizationThreshold=4000,
+                                 writeMaterials=True,
+                                 directory=cache_destination,
+                                 fileName=cache_name,
+                                 showStats=True,
+                                 useBaseTessellation=False)
 
-    return gpu_file
+        # loads gpu cache
+        gpu_node = cmds.createNode("gpuCache", name="{}_cacheShape"
+                                   .format(cache_name))
+        cmds.setAttr("{}.cacheFileName".format(gpu_node),
+                     "{}".format(gpu_file[0]), type="string")
+
+        # adds link attribute to rig
+        cmds.addAttr(gpu_node, longName="rig_link", dataType="string")
+        cmds.setAttr("{}.rig_link".format(gpu_node), "{}".format(rig_node),
+                     type="string", lock=True)
+        cmds.lockNode(gpu_node, lock=lock)
+
+        return gpu_node
+
+    except Exception as e:
+        raise e
 
 
 def set_preference_file_cache_destination(cache_path):

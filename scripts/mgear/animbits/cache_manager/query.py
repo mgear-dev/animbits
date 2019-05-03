@@ -53,34 +53,24 @@ def get_preference_file_cache_destination_path():
     # preference file
     pref_file = get_preference_file()
 
-    # checks if file exists and its an actual file
-    if not os.path.isfile(pref_file):
-        return None
-
     try:
         with open(pref_file, 'r') as file_r:
-
             # reads json file and get the cache path
             json_dict = json.load(file_r)
             value = json_dict["preferences"][0]["cache_manager_cache_path"]
 
-            # checks if path is empty and returns
-            if len(value) == 0:
-                return
+            if os.path.exists(value):
+                return value
 
-            # lastly we validate the path existence
-            if not os.path.exists(value):
-                print("Path {} saved on the preference file doesn't exist"
-                      .format(value))
-                return None
-
-            return value
+            print("Path {} saved on preference file doesn't exist or is "
+                  "invalid".format(value))
+            return
 
     except Exception as e:
         message = "Contact mGear's developers reporting this issue to get help"
         print("{} - {} / {}".format(type(e).__name__, e,
                                     message))
-        return None
+        return
 
 
 def get_preference_file():

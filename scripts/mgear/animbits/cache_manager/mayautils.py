@@ -6,6 +6,7 @@ import json
 from maya import cmds
 from mgear.animbits.cache_manager.query import _MANAGER_PREFERENCE_PATH
 from mgear.animbits.cache_manager.query import get_preference_file
+from mgear.animbits.cache_manager.query import get_cache_destination_path
 
 
 def __create_preference_file():
@@ -74,6 +75,25 @@ def create_cache_manager_preference_file():
         pref_file = __create_preference_file()
 
     return pref_file
+
+
+def generate_gpu_cache(geo_node, cache_name, start, end):
+    """
+    """
+
+    cache_destination = get_cache_destination_path()
+
+    # Runs the GPU cache generation
+    gpu_file = cmds.gpuCache("{}".format(geo_node),
+                             startTime=start,
+                             endTime=end,
+                             optimize=True,
+                             optimizationThreshold=4000,
+                             writeMaterials=True,
+                             directory=cache_destination,
+                             fileName=cache_name)
+
+    return gpu_file
 
 
 def set_preference_file_cache_destination(cache_path):

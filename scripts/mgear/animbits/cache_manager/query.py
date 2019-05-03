@@ -32,7 +32,8 @@ def get_cache_destination_path():
     """
 
     # if env variable is set
-    if _MANAGER_CACHE_DESTINATION:
+    if (_MANAGER_CACHE_DESTINATION and
+            os.path.exists(_MANAGER_CACHE_DESTINATION)):
         return _MANAGER_CACHE_DESTINATION
 
     # if pref file exists

@@ -4,10 +4,20 @@ from __future__ import absolute_import
 import os
 import re
 import json
-from maya import cmds
+from maya import cmds, OpenMayaUI
+from PySide2 import QtWidgets
+from shiboken2 import wrapInstance
 from mgear.animbits.cache_manager.query import _MANAGER_PREFERENCE_PATH
 from mgear.animbits.cache_manager.query import get_preference_file
 from mgear.animbits.cache_manager.query import get_cache_destination_path
+
+
+def __check_gpu_plugin():
+    """ Check for the gpuCache plugin load
+    """
+
+    if not cmds.pluginInfo('gpuCache', query=True, loaded=True):
+        cmds.loadPlugin('gpuCache')
 
 
 def __create_preference_file():
@@ -53,12 +63,14 @@ def __create_preference_folder():
                                     message))
 
 
-def __check_gpu_plugin():
-    """ Check for the gpuCache plugin load
+def __is_maya_batch():
+    """ Returns if the current session is a Maya batch session or not
+
+    Returns:
+        bool: if Maya is on batch mode or not
     """
 
-    if not cmds.pluginInfo('gpuCache', query=True, loaded=True):
-        cmds.loadPlugin('gpuCache')
+    return cmds.about(batch=True)
 
 
 def create_cache_manager_preference_file():
@@ -130,6 +142,35 @@ def generate_gpu_cache(geo_node, cache_name, start, end, rig_node, lock=False):
         raise e
 
 
+def kill_ui(name):
+    """ Deletes an already created widget
+
+    Args:
+        name (str): the widget object name
+    """
+
+    # finds workspace control if dockable widget
+    if cmds.workspaceControl(name, exists=True):
+        cmds.deleteUI(name)
+        return
+
+    # finds the widget
+    widget = OpenMayaUI.MQtUtil.findWindow(name)
+
+    if not widget:
+        return
+
+    # wraps the widget into a qt object
+    qt_object = wrapInstance(long(widget), QtWidgets.QDialog)
+
+    # sets the widget parent to none
+    qt_object.setParent(None)
+
+    # deletes the widget
+    qt_object.deleteLater()
+    del(qt_object)
+
+
 def set_preference_file_cache_destination(cache_path):
     """ Sets the Cache Manager cache destination path into the preference file
 
@@ -159,3 +200,19 @@ def set_preference_file_cache_destination(cache_path):
         print("{} - {} / {}".format(type(e).__name__, e,
                                     message))
         return None
+
+
+def wrap_maya_window():
+    """ Returns a qt widget warp of the Maya window
+
+    Returns:
+        PySide2.QtWidgets or None: Maya window on a qt widget.
+                                   Returns None if Maya is on batch
+    """
+
+    if __is_maya_batch():
+        return None
+
+    # gets Maya main window object
+    maya_window = OpenMayaUI.MQtUtil.mainWindow()
+    return wrapInstance(long(maya_window), QtWidgets.QMainWindow)

@@ -8,6 +8,8 @@ from PySide2 import QtWidgets
 from mgear.animbits.cache_manager.mayautils import kill_ui
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from mgear.animbits.cache_manager.query import get_scene_rigs
+from mgear.animbits.cache_manager.mayautils import install_script_job
+from mgear.animbits.cache_manager.mayautils import kill_script_job
 
 # UI WIDGET NAME
 UI_NAME = "mgear_cache_manager_qdialog"
@@ -32,9 +34,6 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.setWindowTitle("Animbits: Cache Manager")
         self.setObjectName(UI_NAME)
 
-        # sets property to delete on close
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-
         # creates main layout widget
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setMargin(6)
@@ -49,7 +48,22 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # fill ui content
         self._fill_widgets()
 
-        # temp connection
+        # connects signals
+        self._connect_signals()
+
+        # adds refresh callback
+        install_script_job(self.refresh_model)
+
+    def _apply_filter(self):
+        """ Uses the line edit text to filter the view
+        """
+
+        self.proxy_model.setFilterRegExp(self.filter_line.text())
+
+    def _connect_signals(self):
+        """ Connects widget signals to functionalities
+        """
+
         self.filter_line.textChanged.connect(self._apply_filter)
 
     def _create_widgets(self):
@@ -96,6 +110,7 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """ Fills the content on the widgets
         """
 
+        # gets scene rigs
         data = get_scene_rigs()
         model = QtGui.QStringListModel(data)
 
@@ -104,16 +119,17 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.rigs_list_view.setModel(self.proxy_model)
 
-    def _apply_filter(self):
-        """ Uses the line edit text to filter the view
+    def dockCloseEventTriggered(self, *args, **kwargs):  # @unusedVariables
+        """ Overwrites MayaQWidgetDockableMixin method
         """
 
-        self.proxy_model.setFilterRegExp(self.filter_line.text())
+        # kills installed script jobs
+        kill_script_job(self.refresh_model.__name__)
 
+    def refresh_model(self):
+        """ Updates the rigs model list
+        """
 
-def cache_mangager_launch():
-    """ Launches UI with Maya window as parent widget
-    """
-
-    tool = AnimbitsCacheManagerDialog()
-    tool.show(dockable=True)
+        data = get_scene_rigs()
+        model = QtGui.QStringListModel(data)
+        self.proxy_model.setSourceModel(model)

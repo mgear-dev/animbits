@@ -142,6 +142,29 @@ def generate_gpu_cache(geo_node, cache_name, start, end, rig_node, lock=False):
         raise e
 
 
+def install_script_job(function):
+    """ Adds a script job for file read and scene opened
+    """
+
+    kill_script_job(function.__name__)
+    cmds.scriptJob(event=["NewSceneOpened", function])
+    cmds.scriptJob(conditionTrue=["readingFile", function])
+
+
+def kill_script_job(name):
+    """ Finds the given script job name and deletes it
+
+    Args:
+        name (str): the name for the script job to kill
+    """
+
+    for job in cmds.scriptJob(lj=True):
+        if name in job:
+            print("Killing script job {}".format(job))
+            _id = int(job.split(":")[0])
+            cmds.scriptJob(k=_id)
+
+
 def kill_ui(name):
     """ Deletes an already created widget
 
@@ -151,8 +174,8 @@ def kill_ui(name):
 
     # finds workspace control if dockable widget
     if cmds.workspaceControl(name, exists=True):
+        cmds.workspaceControl(name, edit=True, close=True)
         cmds.deleteUI(name)
-        return
 
     # finds the widget
     widget = OpenMayaUI.MQtUtil.findWindow(name)

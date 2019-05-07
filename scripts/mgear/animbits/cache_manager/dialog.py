@@ -10,6 +10,10 @@ from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from mgear.animbits.cache_manager.query import get_scene_rigs
 from mgear.animbits.cache_manager.mayautils import install_script_job
 from mgear.animbits.cache_manager.mayautils import kill_script_job
+from mgear.animbits.cache_manager.query import get_model_group
+from mgear.animbits.cache_manager.query import find_model_group_inside_rig
+from mgear.animbits.cache_manager.query import get_timeline_values
+from mgear.animbits.cache_manager.mayautils import generate_gpu_cache
 
 # UI WIDGET NAME
 UI_NAME = "mgear_cache_manager_qdialog"
@@ -27,8 +31,8 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         super(AnimbitsCacheManagerDialog, self).__init__(parent)
 
         # checks for previous ui instances
-        kill_ui(UI_NAME)
         kill_ui("{}WorkspaceControl".format(UI_NAME))
+        kill_ui(UI_NAME)
 
         # sets title and object name
         self.setWindowTitle("Animbits: Cache Manager")
@@ -65,6 +69,7 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
 
         self.filter_line.textChanged.connect(self._apply_filter)
+        self.cache_button.clicked.connect(self.generate_cache)
 
     def _create_widgets(self):
         """ Creates the widget elements the user will interact with
@@ -125,6 +130,24 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # kills installed script jobs
         kill_script_job(self.refresh_model.__name__)
+
+    def generate_cache(self):
+        """ Launches the GPU cache generation for the selected items
+        """
+
+        print("Generating caches...")
+
+        start, end = get_timeline_values()
+
+        items = self.rigs_list_view.selectedIndexes()
+        model = self.rigs_list_view.model()
+
+        for idx in items:
+            name_idx = model.index(idx.row(), 0)
+            rig_node = model.data(name_idx)
+            geo_node = get_model_group()  # need to add selection here
+            model_group = find_model_group_inside_rig(geo_node, rig_node)
+            generate_gpu_cache(model_group, rig_node, start, end, rig_node)
 
     def refresh_model(self):
         """ Updates the rigs model list

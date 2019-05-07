@@ -60,9 +60,56 @@ def get_model_group():
 
     Finally if no environment variable or preference file is been set then we
     fall back to selection.
+
+    This doesn't check if the returner values is a valid value like if the
+    transform node exists. This is because we do not know at this stage if the
+    asset it inside a namespace or something scene specific. As this is generic
+    only checks for that generic part are been made.
     """
 
-    pass
+    # if env variable is set
+    if _MANAGER_MODEL_GROUP:
+        return _MANAGER_MODEL_GROUP
+
+    # if pref file exists
+    if get_preference_file_model_group():
+        return get_preference_file_model_group()
+
+    # returns selection
+    selection = [x for x in cmds.ls(selection=True)
+                 if len(cmds.ls(selection=True)) is 1] or None
+    return selection
+
+
+def get_preference_file_model_group():
+    """ Returns the model group name set on the preference file
+
+    Returns:
+        str or None: Model group name stored in the preference file
+                     or None if invalid
+    """
+
+    # preference file
+    pref_file = get_preference_file()
+
+    try:
+        with open(pref_file, 'r') as file_r:
+            # reads json file and get the cache path
+            json_dict = json.load(file_r)
+            value = json_dict["preferences"][0]["cache_manager_model_group"]
+
+            if len(value):
+                return value
+
+            print("Model group {} saved on preference file doesn't exist or is"
+                  " invalid".format(value))
+            return
+
+    except Exception as e:
+        message = "Contact mGear's developers reporting this issue to get help"
+        print("{} - {} / {}".format(type(e).__name__, e,
+                                    message))
+        return
 
 
 def get_preference_file_cache_destination_path():

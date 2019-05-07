@@ -10,6 +10,7 @@ from shiboken2 import wrapInstance
 from mgear.animbits.cache_manager.query import _MANAGER_PREFERENCE_PATH
 from mgear.animbits.cache_manager.query import get_preference_file
 from mgear.animbits.cache_manager.query import get_cache_destination_path
+from mgear.animbits.cache_manager.query import get_time_stamp
 
 
 def __check_gpu_plugin():
@@ -39,6 +40,7 @@ def __create_preference_file():
         data = {}
         data["preferences"] = []
         data["preferences"].append({"cache_manager_cache_path": ""})
+        data["preferences"].append({"cache_manager_model_group": ""})
         json.dump(data, pref_file, indent=4)
         pref_file.close()
         return pref_file.name
@@ -110,8 +112,8 @@ def generate_gpu_cache(geo_node, cache_name, start, end, rig_node, lock=False):
     cache_destination = get_cache_destination_path()
 
     try:
-
         file_name = re.sub('[^\w_.)( -]', '_', cache_name)
+        file_name += "_{}".format(get_time_stamp())
         # Runs the GPU cache generation
         gpu_file = cmds.gpuCache("{}".format(geo_node),
                                  startTime=start,

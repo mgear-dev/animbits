@@ -174,7 +174,7 @@ def kill_ui(name):
 
     # finds workspace control if dockable widget
     if cmds.workspaceControl(name, exists=True):
-        cmds.workspaceControl(name, edit=True, close=True)
+        cmds.workspaceControl(name, edit=True, clp=False)
         cmds.deleteUI(name)
 
     # finds the widget

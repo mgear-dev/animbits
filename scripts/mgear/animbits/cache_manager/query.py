@@ -1,6 +1,7 @@
 
 # imports
 from __future__ import absolute_import
+from datetime import datetime
 import os
 import json
 from maya import cmds
@@ -17,6 +18,25 @@ _MANAGER_RIG_ATTRIBUTE = os.getenv("MGEAR_CACHE_MANAGER_RIG_ATTRIBUTE")
 # ==============================================================================
 
 
+def find_model_group_inside_rig(geo_node, rig_node):
+    """ Finds the given group name inside the hierarchy of a rig
+
+    Args:
+        geo_node (str): geometry group transform node containing the shapes to
+                        cache
+        rig_node (str): Rig root node containing the geo_node
+
+    Returns:
+        str or None: Full path to the geo_node if found else None
+    """
+
+    model_group = [x for x in cmds.listRelatives(rig_node, allDescendents=True)
+                   if geo_node in x] or None
+
+    if model_group:
+        return model_group[0]
+
+
 def get_cache_destination_path():
     """ Returns the cache destination path
 
@@ -31,6 +51,9 @@ def get_cache_destination_path():
 
     Finally if no environment variable or preference file is been set then we
     use the **OS TEMP** folder as destination path.
+
+    Returns:
+        str: cache destination path
     """
 
     # if env variable is set
@@ -44,6 +67,20 @@ def get_cache_destination_path():
 
     # returns temp. folder
     return os.getenv("TMPDIR")
+
+
+def get_time_stamp():
+    """ Returns the date and time in a file name friendly way
+
+    This is used to create the cache file name a unique name in order to avoid
+    clashing files overwriting other cache files been used on other specific
+    file scenes
+
+    Returns:
+        str: time stamp (19-05-12_14-10-55) year-month-day_hour-minutes-seconds
+    """
+
+    return datetime.now().strftime('%y-%m-%d_%H-%M-%S')
 
 
 def get_model_group():
@@ -65,6 +102,9 @@ def get_model_group():
     transform node exists. This is because we do not know at this stage if the
     asset it inside a namespace or something scene specific. As this is generic
     only checks for that generic part are been made.
+
+    Returns:
+        str or None: group name if anything or None
     """
 
     # if env variable is set
@@ -76,40 +116,21 @@ def get_model_group():
         return get_preference_file_model_group()
 
     # returns selection
-    selection = [x for x in cmds.ls(selection=True)
-                 if len(cmds.ls(selection=True)) is 1] or None
-    return selection
+    selection = cmds.ls(selection=True)
+
+    # returns str instead of list
+    if selection:
+        return selection[0]
 
 
-def get_preference_file_model_group():
-    """ Returns the model group name set on the preference file
+def get_preference_file():
+    """ Returns the preference file path and name
 
     Returns:
-        str or None: Model group name stored in the preference file
-                     or None if invalid
+        str: preference file path and name
     """
 
-    # preference file
-    pref_file = get_preference_file()
-
-    try:
-        with open(pref_file, 'r') as file_r:
-            # reads json file and get the cache path
-            json_dict = json.load(file_r)
-            value = json_dict["preferences"][0]["cache_manager_model_group"]
-
-            if len(value):
-                return value
-
-            print("Model group {} saved on preference file doesn't exist or is"
-                  " invalid".format(value))
-            return
-
-    except Exception as e:
-        message = "Contact mGear's developers reporting this issue to get help"
-        print("{} - {} / {}".format(type(e).__name__, e,
-                                    message))
-        return
+    return "{}/{}".format(_MANAGER_PREFERENCE_PATH, _MANAGER_PREFERENCE_FILE)
 
 
 def get_preference_file_cache_destination_path():
@@ -142,15 +163,35 @@ def get_preference_file_cache_destination_path():
         return
 
 
-def get_preference_file():
-    """ Returns the preference file path and name
+def get_preference_file_model_group():
+    """ Returns the model group name set on the preference file
 
     Returns:
-        str: preference file path and name
+        str or None: Model group name stored in the preference file
+                     or None if invalid
     """
 
-    return "{}/{}".format(_MANAGER_PREFERENCE_PATH, _MANAGER_PREFERENCE_FILE)
+    # preference file
+    pref_file = get_preference_file()
 
+    try:
+        with open(pref_file, 'r') as file_r:
+            # reads json file and get the cache path
+            json_dict = json.load(file_r)
+            value = json_dict["preferences"][0]["cache_manager_model_group"]
+
+            if len(value):
+                return value
+
+            print("Model group {} saved on preference file doesn't exist or is"
+                  " invalid".format(value))
+            return
+
+    except Exception as e:
+        message = "Contact mGear's developers reporting this issue to get help"
+        print("{} - {} / {}".format(type(e).__name__, e,
+                                    message))
+        return
 
 def get_scene_rigs():
     """ The rigs from current Maya session

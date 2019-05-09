@@ -225,12 +225,14 @@ def read_preference_key(search_key):
             json_dict = json.load(file_r)
             value = json_dict[search_key]
 
-            if len(value):
+            if type(value) == int:
+                return value
+
+            if len(value) and type(value) != int:
                 return value
 
             print("Key -{}- saved on preference file is invalid for {}"
                   .format(value, search_key))
-            return
 
     except Exception as e:
         message = "Contact mGear's developers reporting this issue to get help"

@@ -7,10 +7,11 @@ import json
 from maya import cmds, OpenMayaUI
 from PySide2 import QtWidgets
 from shiboken2 import wrapInstance
-from mgear.animbits.cache_manager.query import _MANAGER_PREFERENCE_PATH
-from mgear.animbits.cache_manager.query import get_preference_file
-from mgear.animbits.cache_manager.query import get_cache_destination_path
-from mgear.animbits.cache_manager.query import get_time_stamp
+from mgear.animbits.cache_manager.query import (
+    _MANAGER_PREFERENCE_PATH,
+    get_preference_file,
+    get_cache_destination_path,
+    get_time_stamp)
 
 
 def __check_gpu_plugin():
@@ -40,7 +41,7 @@ def __create_preference_file():
         data = {}
         data["cache_manager_cache_path"] = ""
         data["cache_manager_model_group"] = ""
-        data["unload"] = True
+        data["cache_manager_unload_rigs"] = 1
         json.dump(data, pref_file, indent=4)
         pref_file.close()
         return pref_file.name
@@ -232,6 +233,16 @@ def set_preference_file_model_group(model_group):
     """
 
     set_preference_file_setting("cache_manager_model_group", model_group)
+
+
+def set_preference_file_unload_method(value):
+    """ Sets the Cache Manager unload method into the preference file
+
+    Args:
+        value (bool): whether or not the rig is unloaded or hidden
+    """
+
+    set_preference_file_setting("cache_manager_unload_rigs", value)
 
 
 def set_preference_file_setting(setting, value):

@@ -40,8 +40,7 @@ def __create_preference_file():
         data = {}
         data["cache_manager_cache_path"] = ""
         data["cache_manager_model_group"] = ""
-#         data["preferences"].append({"cache_manager_cache_path": ""})
-#         data["preferences"].append({"cache_manager_model_group": ""})
+        data["unload"] = True
         json.dump(data, pref_file, indent=4)
         pref_file.close()
         return pref_file.name
@@ -222,28 +221,7 @@ def set_preference_file_cache_destination(cache_path):
         cache_path (str): The folder path for the cache files
     """
 
-    # preference file
-    pref_file = get_preference_file()
-
-    try:
-        # reads file
-        pref_file = open(get_preference_file(), "r")
-
-        # edits path
-        data = json.load(pref_file)
-        data["cache_manager_cache_path"] = cache_path
-        pref_file.close()
-
-        # writes file
-        pref_file = open(get_preference_file(), "w")
-        json.dump(data, pref_file, indent=4)
-        pref_file.close()
-
-    except Exception as e:
-        message = "Contact mGear's developers reporting this issue to get help"
-        print("{} - {} / {}".format(type(e).__name__, e,
-                                    message))
-        return None
+    set_preference_file_setting("cache_manager_cache_path", cache_path)
 
 
 def set_preference_file_model_group(model_group):
@@ -251,6 +229,17 @@ def set_preference_file_model_group(model_group):
 
     Args:
         model_group (str): The model group name
+    """
+
+    set_preference_file_setting("cache_manager_model_group", model_group)
+
+
+def set_preference_file_setting(setting, value):
+    """ Generic method to save data into the preference file
+
+    Args:
+        setting (str): name of the setting to store
+        value (str / bool): value for the setting
     """
 
     # preference file
@@ -262,7 +251,7 @@ def set_preference_file_model_group(model_group):
 
         # edits path
         data = json.load(pref_file)
-        data["cache_manager_model_group"] = model_group
+        data[setting] = value
         pref_file.close()
 
         # writes file
@@ -288,20 +277,8 @@ def unload_rig(rig_node, method):
     if method and cmds.referenceQuery(rig_node, rfn=True):
         cmds.file(fr=cmds.referenceQuery(rig_node, rfn=True))
     else:
+        if cmds.getAttr("{}.lodVisibility".format(rig_node), lock=True):
+            cmds.warning("Can't hide your rig root node because lodVisible "
+                         "is locked")
+            return
         cmds.setAttr("{}.lodVisibility".format(rig_node), False)
-
-
-def wrap_maya_window():
-    """ Returns a qt widget warp of the Maya window
-
-    Returns:
-        PySide2.QtWidgets or None: Maya window on a qt widget.
-                                   Returns None if Maya is on batch
-    """
-
-    if __is_maya_batch():
-        return None
-
-    # gets Maya main window object
-    maya_window = OpenMayaUI.MQtUtil.mainWindow()
-    return wrapInstance(long(maya_window), QtWidgets.QMainWindow)

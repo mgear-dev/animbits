@@ -227,6 +227,20 @@ def set_preference_file_cache_destination(cache_path):
         return None
 
 
+def unload_rig(rig_node, method):
+    """ Hides or unloads the given rig
+
+    Args:
+        rig_node (str): The rig root node name
+        method (int): 0=hide, 1=unload
+    """
+
+    if method and cmds.referenceQuery(rig_node, rfn=True):
+        cmds.file(fr=cmds.referenceQuery(rig_node, rfn=True))
+    else:
+        cmds.setAttr("{}.lodVisibility".format(rig_node), False)
+
+
 def wrap_maya_window():
     """ Returns a qt widget warp of the Maya window
 

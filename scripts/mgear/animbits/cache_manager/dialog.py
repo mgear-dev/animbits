@@ -3,6 +3,7 @@
 from PySide2 import QtCore
 from PySide2 import QtGui
 from PySide2 import QtWidgets
+from maya import cmds
 
 # tool imports
 from mgear.animbits.cache_manager.mayautils import kill_ui
@@ -14,6 +15,9 @@ from mgear.animbits.cache_manager.query import get_model_group
 from mgear.animbits.cache_manager.query import find_model_group_inside_rig
 from mgear.animbits.cache_manager.query import get_timeline_values
 from mgear.animbits.cache_manager.mayautils import generate_gpu_cache
+from mgear.animbits.cache_manager.mayautils import unload_rig
+from mgear.animbits.cache_manager.mayautils import create_cache_manager_preference_file
+from mgear.animbits.cache_manager.mayautils import set_preference_file_model_group
 
 # UI WIDGET NAME
 UI_NAME = "mgear_cache_manager_qdialog"
@@ -70,12 +74,52 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.filter_line.textChanged.connect(self._apply_filter)
         self.cache_button.clicked.connect(self.generate_cache)
+        self.model_group_button.clicked.connect(self.set_model_group)
 
     def _create_widgets(self):
         """ Creates the widget elements the user will interact with
         """
 
-        # creates frame and add it to principal layout
+        # options widgets -----------------------------------------------------
+        frame = QtWidgets.QFrame()
+        frame.setFrameStyle(6)
+        self.main_layout.addWidget(frame)
+
+        frame_layout = QtWidgets.QGridLayout(frame)
+        frame_layout.setMargin(4)
+        frame_layout.setSpacing(4)
+
+        label = QtWidgets.QLabel("Options:")
+        display_label = QtWidgets.QLabel("Rig switch:")
+        self.rig_unload_radial = QtWidgets.QRadioButton("Unload")
+        self.rig_unload_radial.setObjectName(
+            "cache_manager_unload_qradialbutton")
+        self.rig_unload_radial.setToolTip("Unload the rig after caching")
+        self.rig_unload_radial.setChecked(True)
+        self.rig_hide_radial = QtWidgets.QRadioButton("Hide")
+        self.rig_hide_radial.setObjectName("cache_manager_hide_qradialbutton")
+        self.rig_hide_radial.setToolTip("Hides the rig after caching")
+
+        model_label = QtWidgets.QLabel("Model group:")
+        filter_help = "Group name containing your shapes to cache"
+        self.model_group_line = QtWidgets.QLineEdit()
+        self.model_group_line.setObjectName("cache_manager_model_qlineedit")
+        self.model_group_line.setToolTip(filter_help)
+        self.model_group_line.setWhatsThis(filter_help)
+        self.model_group_line.setPlaceholderText(
+            "Group name containing your shapes")
+        self.model_group_button = QtWidgets.QPushButton("Set")
+
+        # adds widgets to frame layout
+        frame_layout.addWidget(label, 0, 0, 1, 1)
+        frame_layout.addWidget(display_label, 1, 0, 1, 1)
+        frame_layout.addWidget(self.rig_unload_radial, 1, 1, 1, 1)
+        frame_layout.addWidget(self.rig_hide_radial, 1, 2, 1, 1)
+        frame_layout.addWidget(model_label, 2, 0, 1, 1)
+        frame_layout.addWidget(self.model_group_line, 2, 1, 1, 2)
+        frame_layout.addWidget(self.model_group_button, 2, 3, 1, 1)
+
+        # search & filter widgets ---------------------------------------------
         frame = QtWidgets.QFrame()
         frame.setFrameStyle(6)
         self.main_layout.addWidget(frame)
@@ -86,7 +130,7 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         frame_layout.setSpacing(4)
 
         # creates search line edit
-        filter_label = QtWidgets.QLabel("Search:")
+        label = QtWidgets.QLabel("Search:")
         filter_help = "Type to filter your scene rigs"
         self.filter_line = QtWidgets.QLineEdit()
         self.filter_line.setObjectName("cache_manager_filter_qlineedit")
@@ -96,6 +140,7 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # creates search list view
         self.rigs_list_view = QtWidgets.QListView()
+        self.rigs_list_view.setObjectName("cache_manager_rigs_qlistview")
         self.rigs_list_view.setAlternatingRowColors(True)
         self.rigs_list_view.setSelectionMode(
             self.rigs_list_view.ExtendedSelection)
@@ -103,10 +148,11 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # creates cache button
         self.cache_button = QtWidgets.QPushButton("Cache Selected")
+        self.cache_button.setObjectName("cache_manager_cache_qpushbutton")
         self.cache_button.setPalette(self.blue)
 
         # adds widgets to frame layout
-        frame_layout.addWidget(filter_label, 0, 0, 1, 1)
+        frame_layout.addWidget(label, 0, 0, 1, 1)
         frame_layout.addWidget(self.filter_line, 1, 0, 1, 1)
         frame_layout.addWidget(self.rigs_list_view, 2, 0, 1, 1)
         frame_layout.addWidget(self.cache_button, 3, 0, 1, 1)
@@ -114,8 +160,12 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def _fill_widgets(self):
         """ Fills the content on the widgets
         """
+        # fills model group name preference
+        geo_node = get_model_group(True)
+        if geo_node:
+            self.model_group_line.setText(geo_node)
 
-        # gets scene rigs
+        # fills with scene rigs
         data = get_scene_rigs()
         model = QtGui.QStringListModel(data)
 
@@ -123,6 +173,9 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.proxy_model.setSourceModel(model)
 
         self.rigs_list_view.setModel(self.proxy_model)
+
+        timer = QtCore.QTimer(self)
+        timer.singleShot(0, self.filter_line.setFocus)
 
     def dockCloseEventTriggered(self, *args, **kwargs):  # @unusedVariables
         """ Overwrites MayaQWidgetDockableMixin method
@@ -147,7 +200,10 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             rig_node = model.data(name_idx)
             geo_node = get_model_group()  # need to add selection here
             model_group = find_model_group_inside_rig(geo_node, rig_node)
-            generate_gpu_cache(model_group, rig_node, start, end, rig_node)
+            gpu_node = generate_gpu_cache(model_group, rig_node, start, end,
+                                          rig_node)
+            if gpu_node:
+                unload_rig(rig_node, self.rig_unload_radial.isChecked())
 
     def refresh_model(self):
         """ Updates the rigs model list
@@ -156,3 +212,10 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         data = get_scene_rigs()
         model = QtGui.QStringListModel(data)
         self.proxy_model.setSourceModel(model)
+
+    def set_model_group(self):
+        """ Sets the model group name
+        """
+
+        create_cache_manager_preference_file()
+        set_preference_file_model_group(self.model_group_line.text())

@@ -1,23 +1,27 @@
 
 # imports
+from __future__ import absolute_import
 from PySide2 import QtCore
 from PySide2 import QtGui
 from PySide2 import QtWidgets
-from maya import cmds
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 # tool imports
-from mgear.animbits.cache_manager.mayautils import kill_ui
-from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-from mgear.animbits.cache_manager.query import get_scene_rigs
-from mgear.animbits.cache_manager.mayautils import install_script_job
-from mgear.animbits.cache_manager.mayautils import kill_script_job
-from mgear.animbits.cache_manager.query import get_model_group
-from mgear.animbits.cache_manager.query import find_model_group_inside_rig
-from mgear.animbits.cache_manager.query import get_timeline_values
-from mgear.animbits.cache_manager.mayautils import generate_gpu_cache
-from mgear.animbits.cache_manager.mayautils import unload_rig
-from mgear.animbits.cache_manager.mayautils import create_cache_manager_preference_file
-from mgear.animbits.cache_manager.mayautils import set_preference_file_model_group
+from mgear.animbits.cache_manager.query import (
+    get_scene_rigs,
+    get_model_group,
+    find_model_group_inside_rig,
+    get_timeline_values,
+    read_preference_key)
+from mgear.animbits.cache_manager.mayautils import (
+    kill_ui,
+    install_script_job,
+    kill_script_job,
+    generate_gpu_cache,
+    unload_rig,
+    create_cache_manager_preference_file,
+    set_preference_file_model_group,
+    set_preference_file_unload_method)
 
 # UI WIDGET NAME
 UI_NAME = "mgear_cache_manager_qdialog"
@@ -49,6 +53,7 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # colors to use
         self.blue = QtGui.QColor(35, 140, 160)
+        self.orange = QtGui.QColor(250, 180, 40)
 
         # creates ui widgets
         self._create_widgets()
@@ -75,6 +80,8 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.filter_line.textChanged.connect(self._apply_filter)
         self.cache_button.clicked.connect(self.generate_cache)
         self.model_group_button.clicked.connect(self.set_model_group)
+        self.rig_unload_radial.clicked.connect(self.set_unload_method)
+        self.rig_hide_radial.clicked.connect(self.set_unload_method)
 
     def _create_widgets(self):
         """ Creates the widget elements the user will interact with
@@ -146,20 +153,43 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.rigs_list_view.ExtendedSelection)
         self.rigs_list_view.setEditTriggers(self.rigs_list_view.NoEditTriggers)
 
+        # adds widgets to frame layout
+        frame_layout.addWidget(label, 0, 0, 1, 1)
+        frame_layout.addWidget(self.filter_line, 1, 0, 1, 1)
+        frame_layout.addWidget(self.rigs_list_view, 2, 0, 1, 1)
+
+        # buttons widgets ---------------------------------------------
+        frame = QtWidgets.QFrame()
+        frame.setFrameStyle(6)
+        self.main_layout.addWidget(frame)
+
+        # create layout for frame
+        frame_layout = QtWidgets.QGridLayout(frame)
+        frame_layout.setMargin(4)
+        frame_layout.setSpacing(4)
+
         # creates cache button
         self.cache_button = QtWidgets.QPushButton("Cache Selected")
         self.cache_button.setObjectName("cache_manager_cache_qpushbutton")
         self.cache_button.setPalette(self.blue)
 
+        # creates rig button
+        self.rig_button = QtWidgets.QPushButton("Set Rig")
+        self.rig_button.setObjectName("cache_manager_rig_qpushbutton")
+        self.rig_button.setPalette(self.orange)
+
         # adds widgets to frame layout
-        frame_layout.addWidget(label, 0, 0, 1, 1)
-        frame_layout.addWidget(self.filter_line, 1, 0, 1, 1)
-        frame_layout.addWidget(self.rigs_list_view, 2, 0, 1, 1)
-        frame_layout.addWidget(self.cache_button, 3, 0, 1, 1)
+        frame_layout.addWidget(self.cache_button, 1, 0, 1, 1)
+        frame_layout.addWidget(self.rig_button, 2, 0, 1, 1)
 
     def _fill_widgets(self):
         """ Fills the content on the widgets
         """
+
+        # sets unload method
+        if not read_preference_key("cache_manager_unload_rigs"):
+            self.rig_hide_radial.setChecked(True)
+
         # fills model group name preference
         geo_node = get_model_group(True)
         if geo_node:
@@ -214,8 +244,18 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.proxy_model.setSourceModel(model)
 
     def set_model_group(self):
-        """ Sets the model group name
+        """ Saves he model group name into the preference file
         """
 
         create_cache_manager_preference_file()
         set_preference_file_model_group(self.model_group_line.text())
+
+    def set_unload_method(self):
+        """ Saves the unloading method into the preference file
+        """
+
+        create_cache_manager_preference_file()
+        if self.rig_unload_radial.isChecked():
+            set_preference_file_unload_method(1)
+        else:
+            set_preference_file_unload_method(0)

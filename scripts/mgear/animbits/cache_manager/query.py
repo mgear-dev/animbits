@@ -36,6 +36,8 @@ def find_model_group_inside_rig(geo_node, rig_node):
 
         if model_group:
             return model_group[0]
+        else:
+            print("Could not find the geo node inside the rig node.")
 
     except Exception as e:
         print("Could not find the geo node inside the rig node. "

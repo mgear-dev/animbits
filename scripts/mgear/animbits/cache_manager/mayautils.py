@@ -121,6 +121,11 @@ def generate_gpu_cache(geo_node, cache_name, start, end, rig_node, lock=False):
         lock (bool): Whether or not the gpu cache node should be locked
     """
 
+    if not cmds.objExists(rig_node) or (
+            cmds.objExists("{}_cache".format(rig_node))):
+        print("Cache already exists on your scene")
+        return
+
     # checks for plugin load
     __check_gpu_plugin()
 

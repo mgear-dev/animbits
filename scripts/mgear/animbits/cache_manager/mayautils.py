@@ -308,6 +308,9 @@ def load_rig(rig_node):
 
     ref_node = None
 
+    if not cmds.objExists("{}_cacheShape.rig_link".format(rig_node)):
+        return
+
     # checks cache to extract data from it, deletes both file and node
     if cmds.getAttr("{}_cacheShape.rig_link".format(rig_node)) == rig_node:
 

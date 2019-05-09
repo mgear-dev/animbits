@@ -68,7 +68,7 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self._connect_signals()
 
         # adds refresh callback
-#         install_script_job(self.refresh_model)
+        install_script_job(self.refresh_model)
 
     def _apply_filter(self):
         """ Uses the line edit text to filter the view

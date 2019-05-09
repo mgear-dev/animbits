@@ -188,6 +188,16 @@ def get_scene_rigs():
         rigs = [x.split(".")[0] for x in cmds.ls("*.gear_version",
                                                  recursive=True)]
 
+    # we query the gpu caches node rig_link custom attribute in the scene
+    # in order to keep the returned value accurate.
+    # If we have a scene in which a rig has already been cached and the
+    # reference unloaded we can't find the rig node anymore on the scene so
+    # we use the custom attribute added by the load_gpu_cache method to query
+    # caches been created by the cache manager.
+    [rigs.append(cmds.getAttr("{}.rig_link".format(x)))
+     for x in cmds.ls(type="gpuCache")
+     if cmds.objExists("{}.rig_link".format(x))]
+
     return rigs or None
 
 

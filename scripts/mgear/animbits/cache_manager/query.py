@@ -30,11 +30,17 @@ def find_model_group_inside_rig(geo_node, rig_node):
         str or None: Full path to the geo_node if found else None
     """
 
-    model_group = [x for x in cmds.listRelatives(rig_node, allDescendents=True)
-                   if geo_node in x] or None
+    try:
+        model_group = [x for x in cmds.listRelatives(rig_node,
+                       allDescendents=True) if geo_node in x] or None
 
-    if model_group:
-        return model_group[0]
+        if model_group:
+            return model_group[0]
+
+    except Exception as e:
+        print("Could not find the geo node inside the rig node. "
+              "Contact mGear's developers reporting this issue to get help")
+        raise e
 
 
 def get_cache_destination_path():
@@ -62,8 +68,9 @@ def get_cache_destination_path():
         return _MANAGER_CACHE_DESTINATION
 
     # if pref file exists
-    if get_preference_file_cache_destination_path():
-        return get_preference_file_cache_destination_path()
+    cache_path = get_preference_file_cache_destination_path()
+    if cache_path:
+        return cache_path
 
     # returns temp. folder
     return os.getenv("TMPDIR")
@@ -83,7 +90,7 @@ def get_time_stamp():
     return datetime.now().strftime('%y-%m-%d_%H-%M-%S')
 
 
-def get_model_group():
+def get_model_group(ignore_selection=False):
     """ Returns the model group name to cache
 
     This methods returns a string with the name of the transform node to use
@@ -103,6 +110,9 @@ def get_model_group():
     asset it inside a namespace or something scene specific. As this is generic
     only checks for that generic part are been made.
 
+    Args:
+        ignore_selection (bool): whether it falls back to the selected group
+
     Returns:
         str or None: group name if anything or None
     """
@@ -112,14 +122,13 @@ def get_model_group():
         return _MANAGER_MODEL_GROUP
 
     # if pref file exists
-    if get_preference_file_model_group():
-        return get_preference_file_model_group()
+    model_group = get_preference_file_model_group()
+    if model_group:
+        return model_group
 
     # returns selection
     selection = cmds.ls(selection=True)
-
-    # returns str instead of list
-    if selection:
+    if selection and not ignore_selection:
         return selection[0]
 
 
@@ -140,27 +149,7 @@ def get_preference_file_cache_destination_path():
         str or None: The path stored in the preference file or None if invalid
     """
 
-    # preference file
-    pref_file = get_preference_file()
-
-    try:
-        with open(pref_file, 'r') as file_r:
-            # reads json file and get the cache path
-            json_dict = json.load(file_r)
-            value = json_dict["preferences"][0]["cache_manager_cache_path"]
-
-            if os.path.exists(value):
-                return value
-
-            print("Path {} saved on preference file doesn't exist or is "
-                  "invalid".format(value))
-            return
-
-    except Exception as e:
-        message = "Contact mGear's developers reporting this issue to get help"
-        print("{} - {} / {}".format(type(e).__name__, e,
-                                    message))
-        return
+    return read_preference_key(search_key="cache_manager_cache_path")
 
 
 def get_preference_file_model_group():
@@ -171,27 +160,8 @@ def get_preference_file_model_group():
                      or None if invalid
     """
 
-    # preference file
-    pref_file = get_preference_file()
+    return read_preference_key(search_key="cache_manager_model_group")
 
-    try:
-        with open(pref_file, 'r') as file_r:
-            # reads json file and get the cache path
-            json_dict = json.load(file_r)
-            value = json_dict["preferences"][0]["cache_manager_model_group"]
-
-            if len(value):
-                return value
-
-            print("Model group {} saved on preference file doesn't exist or is"
-                  " invalid".format(value))
-            return
-
-    except Exception as e:
-        message = "Contact mGear's developers reporting this issue to get help"
-        print("{} - {} / {}".format(type(e).__name__, e,
-                                    message))
-        return
 
 def get_scene_rigs():
     """ The rigs from current Maya session
@@ -237,3 +207,33 @@ def get_timeline_values():
     _max = cmds.playbackOptions(query=True, maxTime=True)
 
     return _min, _max
+
+
+def read_preference_key(search_key):
+    """ Returns the preference stored on the pref file for the given key
+
+    Returns:
+        str or None: The path stored in the preference file or None if invalid
+    """
+
+    # preference file
+    pref_file = get_preference_file()
+
+    try:
+        with open(pref_file, 'r') as file_r:
+            # reads json file and get the preference
+            json_dict = json.load(file_r)
+            value = json_dict[search_key]
+
+            if len(value):
+                return value
+
+            print("Key -{}- saved on preference file is invalid for {}"
+                  .format(value, search_key))
+            return
+
+    except Exception as e:
+        message = "Contact mGear's developers reporting this issue to get help"
+        print("{} - {} / {}".format(type(e).__name__, e,
+                                    message))
+        return

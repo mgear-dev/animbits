@@ -12,7 +12,8 @@ from mgear.animbits.cache_manager.query import (
     get_model_group,
     find_model_group_inside_rig,
     get_timeline_values,
-    read_preference_key)
+    read_preference_key,
+    get_cache_destination_path)
 from mgear.animbits.cache_manager.mayautils import (
     kill_ui,
     install_script_job,
@@ -21,9 +22,8 @@ from mgear.animbits.cache_manager.mayautils import (
     unload_rig,
     create_cache_manager_preference_file,
     set_preference_file_model_group,
-    set_preference_file_unload_method)
-from mgear.animbits.cache_manager.mayautils import set_preference_file_cache_destination
-from mgear.animbits.cache_manager.query import get_cache_destination_path
+    set_preference_file_unload_method,
+    set_preference_file_cache_destination)
 
 # UI WIDGET NAME
 UI_NAME = "mgear_cache_manager_qdialog"
@@ -296,3 +296,11 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             set_preference_file_unload_method(1)
         else:
             set_preference_file_unload_method(0)
+
+
+def run_cache_mamanger(*args):  # @unusedVariable
+    """ Opens the Cache Manager UI
+    """
+
+    tool = AnimbitsCacheManagerDialog()
+    tool.show(dockable=True)

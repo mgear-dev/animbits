@@ -22,6 +22,8 @@ from mgear.animbits.cache_manager.mayautils import (
     create_cache_manager_preference_file,
     set_preference_file_model_group,
     set_preference_file_unload_method)
+from mgear.animbits.cache_manager.mayautils import set_preference_file_cache_destination
+from mgear.animbits.cache_manager.query import get_cache_destination_path
 
 # UI WIDGET NAME
 UI_NAME = "mgear_cache_manager_qdialog"
@@ -80,6 +82,7 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.filter_line.textChanged.connect(self._apply_filter)
         self.cache_button.clicked.connect(self.generate_cache)
         self.model_group_button.clicked.connect(self.set_model_group)
+        self.path_group_button.clicked.connect(self.set_cache_path)
         self.rig_unload_radial.clicked.connect(self.set_unload_method)
         self.rig_hide_radial.clicked.connect(self.set_unload_method)
 
@@ -117,6 +120,16 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             "Group name containing your shapes")
         self.model_group_button = QtWidgets.QPushButton("Set")
 
+        path_label = QtWidgets.QLabel("GPU path:")
+        filter_help = "Path where GPU files will get stored"
+        self.path_group_line = QtWidgets.QLineEdit()
+        self.path_group_line.setObjectName("cache_manager_model_qlineedit")
+        self.path_group_line.setToolTip(filter_help)
+        self.path_group_line.setWhatsThis(filter_help)
+        self.path_group_line.setPlaceholderText("Path where files get saved")
+        self.path_group_line.setReadOnly(True)
+        self.path_group_button = QtWidgets.QPushButton("...")
+
         # adds widgets to frame layout
         frame_layout.addWidget(label, 0, 0, 1, 1)
         frame_layout.addWidget(display_label, 1, 0, 1, 1)
@@ -125,6 +138,9 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         frame_layout.addWidget(model_label, 2, 0, 1, 1)
         frame_layout.addWidget(self.model_group_line, 2, 1, 1, 2)
         frame_layout.addWidget(self.model_group_button, 2, 3, 1, 1)
+        frame_layout.addWidget(path_label, 3, 0, 1, 1)
+        frame_layout.addWidget(self.path_group_line, 3, 1, 1, 2)
+        frame_layout.addWidget(self.path_group_button, 3, 3, 1, 1)
 
         # search & filter widgets ---------------------------------------------
         frame = QtWidgets.QFrame()
@@ -158,7 +174,7 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         frame_layout.addWidget(self.filter_line, 1, 0, 1, 1)
         frame_layout.addWidget(self.rigs_list_view, 2, 0, 1, 1)
 
-        # buttons widgets ---------------------------------------------
+        # buttons widgets -----------------------------------------------------
         frame = QtWidgets.QFrame()
         frame.setFrameStyle(6)
         self.main_layout.addWidget(frame)
@@ -195,6 +211,9 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if geo_node:
             self.model_group_line.setText(geo_node)
 
+        # fills gpu cache destination path
+        self.path_group_line.setText(get_cache_destination_path())
+
         # fills with scene rigs
         data = get_scene_rigs()
         model = QtGui.QStringListModel(data)
@@ -206,6 +225,14 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         timer = QtCore.QTimer(self)
         timer.singleShot(0, self.filter_line.setFocus)
+
+    def _show_browser(self):
+        """
+        """
+
+        brower = QtWidgets.QFileDialog(self)
+        brower.setFileMode(brower.DirectoryOnly)
+        return brower.getExistingDirectory()
 
     def dockCloseEventTriggered(self, *args, **kwargs):  # @unusedVariables
         """ Overwrites MayaQWidgetDockableMixin method
@@ -242,6 +269,16 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         data = get_scene_rigs()
         model = QtGui.QStringListModel(data)
         self.proxy_model.setSourceModel(model)
+
+    def set_cache_path(self):
+        """ Sets the cache path inside the preference file
+        """
+
+        create_cache_manager_preference_file()
+        _path = self._show_browser()
+        if _path:
+            self.path_group_line.setText(_path)
+            set_preference_file_cache_destination(_path)
 
     def set_model_group(self):
         """ Saves he model group name into the preference file

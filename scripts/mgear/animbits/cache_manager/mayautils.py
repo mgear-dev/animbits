@@ -308,16 +308,20 @@ def load_rig(rig_node):
 
     ref_node = None
 
-    # checks for cache existence to delete it
-    if cmds.objExists("{}_cacheShape.rig_link".format(rig_node)):
-        if cmds.getAttr("{}_cacheShape.rig_link".format(rig_node)) == rig_node:
-            ref_node = cmds.getAttr("{}_cacheShape.rig_reference_node"
-                                    .format(rig_node))
-            file_path = cmds.getAttr("{}_cacheShape.cacheFileName"
-                                     .format(rig_node))
-            delete_cache_file(file_path)
-            cmds.delete("{}_cache".format(rig_node))
+    # checks cache to extract data from it, deletes both file and node
+    if cmds.getAttr("{}_cacheShape.rig_link".format(rig_node)) == rig_node:
 
+        # gets data
+        ref_node = cmds.getAttr("{}_cacheShape.rig_reference_node"
+                                .format(rig_node))
+        file_path = cmds.getAttr("{}_cacheShape.cacheFileName"
+                                 .format(rig_node))
+
+        # deletes file and node
+        delete_cache_file(file_path)
+        cmds.delete("{}_cache".format(rig_node))
+
+    # reloads rig
     if cmds.objExists(rig_node):
         try:
             cmds.setAttr("{}.visibility".format(rig_node), True)

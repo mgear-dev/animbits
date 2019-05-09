@@ -93,6 +93,21 @@ def create_cache_manager_preference_file():
     return pref_file
 
 
+def delete_cache_file(file_path):
+    """ Deletes the given file
+
+    Args:
+        file_patj (str): path and name to the file
+    """
+
+    try:
+        os.remove(file_path)
+    except Exception as e:
+        message = "Contact mGear's developers reporting this issue to get help"
+        print("{} - {} / {}".format(type(e).__name__, e,
+                                    message))
+
+
 def generate_gpu_cache(geo_node, cache_name, start, end, rig_node, lock=False):
     """ Generates a GPU representation for shapes found under the geo_node
 
@@ -210,6 +225,13 @@ def load_gpu_cache(node_name, gpu_file, rig_node, lock):
     cmds.addAttr(gpu_node, longName="rig_link", dataType="string")
     cmds.setAttr("{}.rig_link".format(gpu_node), "{}".format(rig_node),
                  type="string", lock=True)
+
+    # adds link to reference node
+    cmds.addAttr(gpu_node, longName="rig_reference_node", dataType="string")
+    ref_node = cmds.referenceQuery(rig_node, referenceNode=True)
+    cmds.setAttr("{}.rig_reference_node".format(gpu_node),
+                 "{}".format(ref_node), type="string", lock=True)
+
     cmds.lockNode(gpu_node, lock=lock)
 
     return gpu_node
@@ -277,8 +299,42 @@ def set_preference_file_setting(setting, value):
         return None
 
 
+def load_rig(rig_node):
+    """ Brings back the rig
+
+    Args:
+        rig_node (str): The rig root node name
+    """
+
+    ref_node = None
+
+    # checks for cache existence to delete it
+    if cmds.objExists("{}_cacheShape.rig_link".format(rig_node)):
+        if cmds.getAttr("{}_cacheShape.rig_link".format(rig_node)) == rig_node:
+            ref_node = cmds.getAttr("{}_cacheShape.rig_reference_node"
+                                    .format(rig_node))
+            file_path = cmds.getAttr("{}_cacheShape.cacheFileName"
+                                     .format(rig_node))
+            delete_cache_file(file_path)
+            cmds.delete("{}_cache".format(rig_node))
+
+    if cmds.objExists(rig_node):
+        try:
+            cmds.setAttr("{}.visibility".format(rig_node), True)
+        except RuntimeError:
+            return
+
+    else:
+        cmds.file(lr=ref_node)
+
+
 def unload_rig(rig_node, method):
     """ Hides or unloads the given rig
+
+    Hiding method is using the visibility attribute. We would like to
+    transport it to the lodVisibility attribute but using this one does not
+    trigger correctly the visibility evaluator causing slow-downs due to rig
+    still been computed even if hidden.
 
     Args:
         rig_node (str): The rig root node name
@@ -288,8 +344,8 @@ def unload_rig(rig_node, method):
     if method and cmds.referenceQuery(rig_node, rfn=True):
         cmds.file(fr=cmds.referenceQuery(rig_node, rfn=True))
     else:
-        if cmds.getAttr("{}.lodVisibility".format(rig_node), lock=True):
-            cmds.warning("Can't hide your rig root node because lodVisible "
+        if cmds.getAttr("{}.visibility".format(rig_node), lock=True):
+            cmds.warning("Can't hide your rig root node because visibility "
                          "is locked")
             return
-        cmds.setAttr("{}.lodVisibility".format(rig_node), False)
+        cmds.setAttr("{}.visibility".format(rig_node), False)

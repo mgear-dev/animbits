@@ -24,6 +24,7 @@ from mgear.animbits.cache_manager.mayautils import (
     set_preference_file_model_group,
     set_preference_file_unload_method,
     set_preference_file_cache_destination)
+from mgear.animbits.cache_manager.mayautils import load_rig
 
 # UI WIDGET NAME
 UI_NAME = "mgear_cache_manager_qdialog"
@@ -67,7 +68,7 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self._connect_signals()
 
         # adds refresh callback
-        install_script_job(self.refresh_model)
+#         install_script_job(self.refresh_model)
 
     def _apply_filter(self):
         """ Uses the line edit text to filter the view
@@ -80,11 +81,12 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
 
         self.filter_line.textChanged.connect(self._apply_filter)
-        self.cache_button.clicked.connect(self.generate_cache)
         self.model_group_button.clicked.connect(self.set_model_group)
         self.path_group_button.clicked.connect(self.set_cache_path)
         self.rig_unload_radial.clicked.connect(self.set_unload_method)
         self.rig_hide_radial.clicked.connect(self.set_unload_method)
+        self.cache_button.clicked.connect(self.generate_cache)
+        self.rig_button.clicked.connect(self.reload_rig)
 
     def _create_widgets(self):
         """ Creates the widget elements the user will interact with
@@ -269,6 +271,20 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         data = get_scene_rigs()
         model = QtGui.QStringListModel(data)
         self.proxy_model.setSourceModel(model)
+
+    def reload_rig(self):
+        """ Reloads rigs for the selected items
+        """
+
+        print("Reloading rigs...")
+
+        items = self.rigs_list_view.selectedIndexes()
+        model = self.rigs_list_view.model()
+
+        for idx in items:
+            name_idx = model.index(idx.row(), 0)
+            rig_node = model.data(name_idx)
+            load_rig(rig_node)
 
     def set_cache_path(self):
         """ Sets the cache path inside the preference file

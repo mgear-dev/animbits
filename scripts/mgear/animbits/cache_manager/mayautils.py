@@ -38,9 +38,10 @@ def __create_preference_file():
 
         # creates the data structure
         data = {}
-        data["preferences"] = []
-        data["preferences"].append({"cache_manager_cache_path": ""})
-        data["preferences"].append({"cache_manager_model_group": ""})
+        data["cache_manager_cache_path"] = ""
+        data["cache_manager_model_group"] = ""
+#         data["preferences"].append({"cache_manager_cache_path": ""})
+#         data["preferences"].append({"cache_manager_model_group": ""})
         json.dump(data, pref_file, indent=4)
         pref_file.close()
         return pref_file.name
@@ -124,21 +125,11 @@ def generate_gpu_cache(geo_node, cache_name, start, end, rig_node, lock=False):
                                  directory=cache_destination,
                                  fileName=file_name,
                                  showStats=True,
-                                 useBaseTessellation=False)
+                                 useBaseTessellation=False,
+                                 saveMultipleFiles=True)
 
         # loads gpu cache
-        gpu_node = cmds.createNode("gpuCache", name="{}_cacheShape"
-                                   .format(cache_name))
-        cmds.setAttr("{}.cacheFileName".format(gpu_node),
-                     "{}".format(gpu_file[0]), type="string")
-
-        # adds link attribute to rig
-        cmds.addAttr(gpu_node, longName="rig_link", dataType="string")
-        cmds.setAttr("{}.rig_link".format(gpu_node), "{}".format(rig_node),
-                     type="string", lock=True)
-        cmds.lockNode(gpu_node, lock=lock)
-
-        return gpu_node
+        return load_gpu_cache(cache_name, gpu_file[0], rig_node, lock)
 
     except Exception as e:
         raise e
@@ -196,6 +187,34 @@ def kill_ui(name):
     del(qt_object)
 
 
+def load_gpu_cache(node_name, gpu_file, rig_node, lock):
+    """ Generic method to load gpu cache files into a Maya scene
+
+    Args:
+        node_name (str): gpu cache node name to be use
+        gpu_file (str): file name to use for the gpu cache file
+        rig_node (str): Rig root node containing the geo_node
+        lock (bool): Whether or not the gpu cache node should be locked
+
+    Returns:
+        str: the gpu cache node created
+    """
+
+    # loads gpu cache
+    gpu_node = cmds.createNode("gpuCache", name="{}_cacheShape"
+                               .format(node_name))
+    cmds.setAttr("{}.cacheFileName".format(gpu_node),
+                 "{}".format(gpu_file), type="string")
+
+    # adds link attribute to rig
+    cmds.addAttr(gpu_node, longName="rig_link", dataType="string")
+    cmds.setAttr("{}.rig_link".format(gpu_node), "{}".format(rig_node),
+                 type="string", lock=True)
+    cmds.lockNode(gpu_node, lock=lock)
+
+    return gpu_node
+
+
 def set_preference_file_cache_destination(cache_path):
     """ Sets the Cache Manager cache destination path into the preference file
 
@@ -212,7 +231,38 @@ def set_preference_file_cache_destination(cache_path):
 
         # edits path
         data = json.load(pref_file)
-        data["preferences"][0]["cache_manager_cache_path"] = cache_path
+        data["cache_manager_cache_path"] = cache_path
+        pref_file.close()
+
+        # writes file
+        pref_file = open(get_preference_file(), "w")
+        json.dump(data, pref_file, indent=4)
+        pref_file.close()
+
+    except Exception as e:
+        message = "Contact mGear's developers reporting this issue to get help"
+        print("{} - {} / {}".format(type(e).__name__, e,
+                                    message))
+        return None
+
+
+def set_preference_file_model_group(model_group):
+    """ Sets the Cache Manager model group name into the preference file
+
+    Args:
+        model_group (str): The model group name
+    """
+
+    # preference file
+    pref_file = get_preference_file()
+
+    try:
+        # reads file
+        pref_file = open(get_preference_file(), "r")
+
+        # edits path
+        data = json.load(pref_file)
+        data["cache_manager_model_group"] = model_group
         pref_file.close()
 
         # writes file

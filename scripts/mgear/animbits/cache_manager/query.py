@@ -187,7 +187,7 @@ def get_scene_rigs():
                              "MGEAR_CACHE_MANAGER_RIG_ATTRIBUTE variable"
                              .format(_MANAGER_RIG_ATTRIBUTE))
     else:
-        rigs = [x.split(".")[0] for x in cmds.ls("*.gear_version",
+        rigs = [x.split(".")[0] for x in cmds.ls("*.is_rig",
                                                  recursive=True)]
 
     # we query the gpu caches node rig_link custom attribute in the scene

@@ -279,11 +279,9 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         print("Reloading rigs...")
 
         items = self.rigs_list_view.selectedIndexes()
-        model = self.rigs_list_view.model()
 
         for idx in items:
-            name_idx = model.index(idx.row(), 0)
-            rig_node = model.data(name_idx)
+            rig_node = idx.data()
             load_rig(rig_node)
 
     def set_cache_path(self):

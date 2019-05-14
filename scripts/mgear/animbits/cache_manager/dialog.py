@@ -207,7 +207,9 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
 
         # sets unload method
-        if not read_preference_key("cache_manager_unload_rigs"):
+        if read_preference_key("cache_manager_unload_rigs") == 1:
+            self.rig_unload_radial.setChecked(True)
+        elif read_preference_key("cache_manager_unload_rigs") == 0:
             self.rig_hide_radial.setChecked(True)
 
         # fills model group name preference

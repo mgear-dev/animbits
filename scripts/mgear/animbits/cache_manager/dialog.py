@@ -7,6 +7,7 @@ from PySide2 import QtWidgets
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 # tool imports
+from mgear.animbits.cache_manager.collapse_widget import QCollapse
 from mgear.animbits.cache_manager.query import (
     get_scene_rigs,
     get_model_group,
@@ -14,6 +15,7 @@ from mgear.animbits.cache_manager.query import (
     get_timeline_values,
     read_preference_key,
     get_cache_destination_path)
+
 from mgear.animbits.cache_manager.mayautils import (
     kill_ui,
     install_script_job,
@@ -23,8 +25,8 @@ from mgear.animbits.cache_manager.mayautils import (
     create_cache_manager_preference_file,
     set_preference_file_model_group,
     set_preference_file_unload_method,
-    set_preference_file_cache_destination)
-from mgear.animbits.cache_manager.mayautils import load_rig
+    set_preference_file_cache_destination,
+    load_rig)
 
 # UI WIDGET NAME
 UI_NAME = "mgear_cache_manager_qdialog"
@@ -93,11 +95,10 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
 
         # options widgets -----------------------------------------------------
-        frame = QtWidgets.QFrame()
-        frame.setFrameStyle(6)
-        self.main_layout.addWidget(frame)
+        options_widget = QCollapse(title="Options:")
+        self.main_layout.addWidget(options_widget)
 
-        frame_layout = QtWidgets.QGridLayout(frame)
+        frame_layout = QtWidgets.QGridLayout()
         frame_layout.setMargin(4)
         frame_layout.setSpacing(4)
 
@@ -143,6 +144,7 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         frame_layout.addWidget(path_label, 3, 0, 1, 1)
         frame_layout.addWidget(self.path_group_line, 3, 1, 1, 2)
         frame_layout.addWidget(self.path_group_button, 3, 3, 1, 1)
+        options_widget.set_layout(frame_layout)
 
         # search & filter widgets ---------------------------------------------
         frame = QtWidgets.QFrame()
@@ -252,11 +254,9 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         start, end = get_timeline_values()
 
         items = self.rigs_list_view.selectedIndexes()
-        model = self.rigs_list_view.model()
 
         for idx in items:
-            name_idx = model.index(idx.row(), 0)
-            rig_node = model.data(name_idx)
+            rig_node = idx.data()
             geo_node = get_model_group()  # need to add selection here
             model_group = find_model_group_inside_rig(geo_node, rig_node)
             gpu_node = generate_gpu_cache(model_group, rig_node, start, end,

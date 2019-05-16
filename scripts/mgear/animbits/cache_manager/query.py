@@ -32,7 +32,7 @@ def find_model_group_inside_rig(geo_node, rig_node):
 
     try:
         model_group = [x for x in cmds.listRelatives(rig_node,
-                       allDescendents=True) if geo_node in x] or None
+                       allDescendents=True) if geo_node in x.split(":")[-1]] or None
 
         if model_group:
             return model_group[0]

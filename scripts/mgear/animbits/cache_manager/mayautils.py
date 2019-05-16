@@ -76,6 +76,22 @@ def __is_maya_batch():
     return cmds.about(batch=True)
 
 
+def __set_reference_edits(ref_edit_default, value):
+    """ Sets the reference edits lock/unlock preference value to the given value
+
+    We only act on the preference if needed. If user already allows reference
+    lock/unlock edits then we don't change it's preferences
+
+    Args:
+        ref_edit_default (bool): the original state of the preferences
+        value (bool): whether or not lock/unlock edits are allowed
+    """
+
+    # we allow references edits
+    if not ref_edit_default:
+        cmds.optionVar(iv=("refLockEditable", value))
+
+
 def create_cache_manager_preference_file():
     """ Creates the Animbits cache manager preference file
 
@@ -220,6 +236,9 @@ def load_gpu_cache(node_name, gpu_file, rig_node, lock):
         str: the gpu cache node created
     """
 
+    # checks for plugin load
+    __check_gpu_plugin()
+
     # loads gpu cache
     gpu_node = cmds.createNode("gpuCache", name="{}_cacheShape"
                                .format(node_name))
@@ -237,9 +256,51 @@ def load_gpu_cache(node_name, gpu_file, rig_node, lock):
     cmds.setAttr("{}.rig_reference_node".format(gpu_node),
                  "{}".format(ref_node), type="string", lock=True)
 
+    # adds state of the visibility attribute on the rig_node to use later
+    cmds.addAttr(gpu_node, longName="visibility_is_locked",
+                 attributeType="bool", dv=False)
+    cmds.setAttr("{}.visibility_is_locked".format(gpu_node),
+                 cmds.getAttr("{}.visibility".format(rig_node), lock=True),
+                 lock=True)
+
     cmds.lockNode(gpu_node, lock=lock)
+    cmds.lockNode("{}_cache".format(node_name), lock=lock)
 
     return gpu_node
+
+
+def mute_and_hide_node(node):
+    """ Mutes the visibility attribute on the given node and hides it
+
+    Args:
+        node (str): node to mute and hide
+    """
+
+    # we query connections and hide from the mute node
+    if cmds.listConnections("{}.visibility".format(node)):
+        _mute = cmds.mute("{}.visibility".format(node))
+        # we deferre hiding with the mute node due to Maya bullshit
+        cmds.evalDeferred("cmds.setAttr('{}.hold', False)".format(_mute[0]))
+
+    # we simply hide
+    else:
+        cmds.setAttr("{}.visibility".format(node), False)
+
+
+def unmute_and_show_node(node):
+    """ Un-mutes the visibility attribute on the given node and show it
+
+    Args:
+        node (str): node to unmute and show
+    """
+
+    # we query connections and hide from the mute node
+    if cmds.listConnections("{}.visibility".format(node)):
+        cmds.mute("{}.visibility".format(node), disable=True, force=True)
+
+    # we simply hide
+    else:
+        cmds.setAttr("{}.visibility".format(node), 1)
 
 
 def set_preference_file_cache_destination(cache_path):
@@ -311,33 +372,47 @@ def load_rig(rig_node):
         rig_node (str): The rig root node name
     """
 
-    ref_node = None
-
-    if not cmds.objExists("{}_cacheShape.rig_link".format(rig_node)):
+    # this is a simple check if the cache actually exists to operate on it
+    if not cmds.objExists("{}_cacheShape.cacheFileName".format(rig_node)):
         return
 
-    # checks cache to extract data from it, deletes both file and node
-    if cmds.getAttr("{}_cacheShape.rig_link".format(rig_node)) == rig_node:
+    # gets file path
+    file_path = cmds.getAttr("{}_cacheShape.cacheFileName".format(rig_node))
 
-        # gets data
-        ref_node = cmds.getAttr("{}_cacheShape.rig_reference_node"
-                                .format(rig_node))
-        file_path = cmds.getAttr("{}_cacheShape.cacheFileName"
-                                 .format(rig_node))
+    # gets visibility state recorder
+    visibility = cmds.getAttr("{}_cacheShape.visibility_is_locked"
+                              .format(rig_node))
 
-        # deletes file and node
-        delete_cache_file(file_path)
-        cmds.delete("{}_cache".format(rig_node))
+    # deletes cache file
+    delete_cache_file(file_path)
 
     # reloads rig
     if cmds.objExists(rig_node):
-        try:
-            cmds.setAttr("{}.visibility".format(rig_node), True)
-        except RuntimeError:
-            return
+
+        # we query reference edits settings
+        ref_edits = cmds.optionVar(query="refLockEditable")
+
+        # allow reference edits
+        __set_reference_edits(ref_edits, True)
+
+        # show node
+        unmute_and_show_node(rig_node)
+
+        # we unlock the attribute
+        cmds.setAttr("{}.visibility".format(rig_node), lock=visibility)
+
+        # disable reference edits
+        __set_reference_edits(ref_edits, False)
 
     else:
+        ref_node = cmds.getAttr("{}_cacheShape.rig_reference_node"
+                                .format(rig_node))
         cmds.file(lr=ref_node)
+
+    # delete gpu node
+    cmds.lockNode("{}_cache".format(rig_node), lock=False)
+    cmds.lockNode("{}_cacheShape".format(rig_node), lock=False)
+    cmds.delete("{}_cache".format(rig_node))
 
 
 def unload_rig(rig_node, method):
@@ -353,11 +428,30 @@ def unload_rig(rig_node, method):
         method (int): 0=hide, 1=unload
     """
 
+    # unload method when we unload reference file
     if method and cmds.referenceQuery(rig_node, rfn=True):
         cmds.file(fr=cmds.referenceQuery(rig_node, rfn=True))
-    else:
-        if cmds.getAttr("{}.visibility".format(rig_node), lock=True):
-            cmds.warning("Can't hide your rig root node because visibility "
-                         "is locked")
-            return
-        cmds.setAttr("{}.visibility".format(rig_node), False)
+        return
+
+    # check for the hide method
+    elif cmds.getAttr("{}.visibility".format(rig_node), lock=True):
+
+        # we query reference edits settings
+        ref_edits = cmds.optionVar(query="refLockEditable")
+
+        # allow reference edits
+        __set_reference_edits(ref_edits, True)
+
+        # we unlock the attribute
+        cmds.setAttr("{}.visibility".format(rig_node), lock=False)
+
+        # hides node
+        mute_and_hide_node(rig_node)
+
+        # disable reference edits
+        __set_reference_edits(ref_edits, False)
+
+        return
+
+    # hide method when we just hide the rig node
+    mute_and_hide_node(rig_node)

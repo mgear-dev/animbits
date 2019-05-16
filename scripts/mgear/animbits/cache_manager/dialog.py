@@ -262,7 +262,7 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             geo_node = get_model_group()  # need to add selection here
             model_group = find_model_group_inside_rig(geo_node, rig_node)
             gpu_node = generate_gpu_cache(model_group, rig_node, start, end,
-                                          rig_node)
+                                          rig_node, True)
             if gpu_node:
                 unload_rig(rig_node, self.rig_unload_radial.isChecked())
 

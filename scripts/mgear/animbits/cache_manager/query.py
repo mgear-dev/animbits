@@ -198,7 +198,8 @@ def get_scene_rigs():
     # caches been created by the cache manager.
     [rigs.append(cmds.getAttr("{}.rig_link".format(x)))
      for x in cmds.ls(type="gpuCache")
-     if cmds.objExists("{}.rig_link".format(x))]
+     if cmds.objExists("{}.rig_link".format(x))
+     and cmds.getAttr("{}.rig_link".format(x)) not in rigs]
 
     return rigs or None
 

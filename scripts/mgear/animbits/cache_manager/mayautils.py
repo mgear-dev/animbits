@@ -220,6 +220,9 @@ def load_gpu_cache(node_name, gpu_file, rig_node, lock):
         str: the gpu cache node created
     """
 
+    # checks for plugin load
+    __check_gpu_plugin()
+
     # loads gpu cache
     gpu_node = cmds.createNode("gpuCache", name="{}_cacheShape"
                                .format(node_name))

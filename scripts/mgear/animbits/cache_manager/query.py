@@ -40,6 +40,8 @@ def find_model_group_inside_rig(geo_node, rig_node):
             print("Could not find the geo node inside the rig node.")
 
     except Exception as e:
+        if cmds.objExists("{}_cache".format(rig_node)):
+            return
         print("Could not find the geo node inside the rig node. "
               "Contact mGear's developers reporting this issue to get help")
         raise e
@@ -187,8 +189,7 @@ def get_scene_rigs():
                              "MGEAR_CACHE_MANAGER_RIG_ATTRIBUTE variable"
                              .format(_MANAGER_RIG_ATTRIBUTE))
     else:
-        rigs = [x.split(".")[0] for x in cmds.ls("*.is_rig",
-                                                 recursive=True)]
+        rigs = [x.split(".")[0] for x in cmds.ls("*.is_rig", recursive=True)]
 
     # we query the gpu caches node rig_link custom attribute in the scene
     # in order to keep the returned value accurate.

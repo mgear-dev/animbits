@@ -4,7 +4,9 @@ from __future__ import absolute_import
 import os
 import re
 import json
-from maya import cmds, OpenMayaUI
+from contextlib import contextmanager
+from maya import cmds, mel, OpenMayaUI
+from maya.app.renderSetup.model import renderSetup, renderLayer, typeIDs
 from PySide2 import QtWidgets
 from shiboken2 import wrapInstance
 from mgear.animbits.cache_manager.query import (
@@ -12,14 +14,6 @@ from mgear.animbits.cache_manager.query import (
     get_preference_file,
     get_cache_destination_path,
     get_time_stamp)
-
-
-def __check_gpu_plugin():
-    """ Check for the gpuCache plugin load
-    """
-
-    if not cmds.pluginInfo('gpuCache', query=True, loaded=True):
-        cmds.loadPlugin('gpuCache')
 
 
 def __create_preference_file():
@@ -92,6 +86,14 @@ def __set_reference_edits(ref_edit_default, value):
         cmds.optionVar(iv=("refLockEditable", value))
 
 
+def check_gpu_plugin():
+    """ Check for the gpuCache plugin load
+    """
+
+    if not cmds.pluginInfo('gpuCache', query=True, loaded=True):
+        cmds.loadPlugin('gpuCache')
+
+
 def create_cache_manager_preference_file():
     """ Creates the Animbits cache manager preference file
 
@@ -137,13 +139,8 @@ def generate_gpu_cache(geo_node, cache_name, start, end, rig_node, lock=False):
         lock (bool): Whether or not the gpu cache node should be locked
     """
 
-    if not cmds.objExists(rig_node) or (
-            cmds.objExists("{}_cache".format(rig_node))):
-        print("Cache already exists on your scene")
-        return
-
     # checks for plugin load
-    __check_gpu_plugin()
+    check_gpu_plugin()
 
     # gets cache destination path
     cache_destination = get_cache_destination_path()
@@ -237,7 +234,7 @@ def load_gpu_cache(node_name, gpu_file, rig_node, lock):
     """
 
     # checks for plugin load
-    __check_gpu_plugin()
+    check_gpu_plugin()
 
     # loads gpu cache
     gpu_node = cmds.createNode("gpuCache", name="{}_cacheShape"
@@ -301,6 +298,57 @@ def unmute_and_show_node(node):
     # we simply hide
     else:
         cmds.setAttr("{}.visibility".format(node), 1)
+
+
+@contextmanager
+def set_gpu_color_override(model_group, color):
+    """ Creates a Maya render layer to override GPU caches display color
+    """
+
+    try:
+        cmds.undoInfo(openChunk=True)
+
+        # creates a new instance of the render setup and force clear
+        render_setup = renderSetup.instance()
+        render_setup.clearAll()
+
+        # force deleting unused shading nodes
+        mel.eval('MLdeleteUnused;')
+
+        # creates render layer
+        color_layer = render_setup.createRenderLayer("cache_manager_rl")
+
+        # creates collection
+        collection = color_layer.createCollection("cache_manager_override")
+
+        # adds model group into the collection of the render layer
+        collection.getSelector().setPattern(model_group)
+
+        # creates shader
+        mat = cmds.shadingNode("phong", asShader=True,
+                               name="cache_manager_display_phong")
+        cmds.setAttr("{}.color".format(mat), color[0], color[1], color[2])
+        cmds.setAttr("{}.specularColor".format(mat), 0.1, 0.1, 0.1)
+
+        # create override and sets shader
+        override = collection.createOverride('shading_override',
+                                             typeIDs.shaderOverride)
+        override.setShader(mat)
+
+        render_setup.switchToLayer(color_layer)
+        yield
+
+    finally:
+        # switch back to default render layer
+        render_setup.switchToLayer(render_setup.getDefaultRenderLayer())
+
+        # deletes cache manager render layer
+        render_setup.detachRenderLayer(color_layer)
+        renderLayer.delete(color_layer)
+
+        # force deleting unused shading nodes
+        mel.eval('MLdeleteUnused;')
+        cmds.undoInfo(closeChunk=True)
 
 
 def set_preference_file_cache_destination(cache_path):

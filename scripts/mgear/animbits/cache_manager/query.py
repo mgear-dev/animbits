@@ -31,8 +31,9 @@ def find_model_group_inside_rig(geo_node, rig_node):
     """
 
     try:
-        model_group = [x for x in cmds.listRelatives(rig_node,
-                       allDescendents=True) if geo_node in x.split(":")[-1]] or None
+        model_group = ([x for x in cmds.listRelatives(rig_node,
+                       allDescendents=True) if geo_node in x.split(":")[-1]]
+                       or None)
 
         if model_group:
             return model_group[0]
@@ -221,6 +222,20 @@ def get_timeline_values():
     _max = cmds.playbackOptions(query=True, maxTime=True)
 
     return _min, _max
+
+
+def is_rig(rig_node):
+    """ Returns whether the given rig node is in srig state or caching state
+
+    Args:
+        rig_node (str): rig node name
+    """
+
+    if not cmds.objExists(rig_node) or (
+            cmds.objExists("{}_cache".format(rig_node))):
+        return False
+
+    return True
 
 
 def read_preference_key(search_key):

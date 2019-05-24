@@ -14,7 +14,8 @@ from mgear.animbits.cache_manager.query import (
     find_model_group_inside_rig,
     get_timeline_values,
     read_preference_key,
-    get_cache_destination_path)
+    get_cache_destination_path,
+    is_rig)
 
 from mgear.animbits.cache_manager.mayautils import (
     kill_ui,
@@ -26,7 +27,9 @@ from mgear.animbits.cache_manager.mayautils import (
     set_preference_file_model_group,
     set_preference_file_unload_method,
     set_preference_file_cache_destination,
-    load_rig)
+    load_rig,
+    set_gpu_color_override,
+    check_gpu_plugin)
 
 # UI WIDGET NAME
 UI_NAME = "mgear_cache_manager_qdialog"
@@ -42,6 +45,9 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super(AnimbitsCacheManagerDialog, self).__init__(parent)
+
+        # load gpu plugin
+        check_gpu_plugin()
 
         # checks for previous ui instances
         kill_ui("{}WorkspaceControl".format(UI_NAME))
@@ -89,6 +95,9 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.rig_hide_radial.clicked.connect(self.set_unload_method)
         self.cache_button.clicked.connect(self.generate_cache)
         self.rig_button.clicked.connect(self.reload_rig)
+        self.color_button.clicked.connect(self._set_display_color)
+        self.color_display_radial.clicked.connect(self._lock_unlock_color)
+        self.keep_display_radial.clicked.connect(self._lock_unlock_color)
 
     def _create_widgets(self):
         """ Creates the widget elements the user will interact with
@@ -133,6 +142,27 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.path_group_line.setReadOnly(True)
         self.path_group_button = QtWidgets.QPushButton("...")
 
+        display_frame = QtWidgets.QFrame()
+        display_layout = QtWidgets.QGridLayout(display_frame)
+        display_layout.setMargin(0)
+        gpu_display_label = QtWidgets.QLabel("Display type:")
+        self.keep_display_radial = QtWidgets.QRadioButton("Current")
+        self.keep_display_radial.setObjectName(
+            "cache_manager_keep_dysplay_qradialbutton")
+        self.keep_display_radial.setToolTip("Keep current shading display")
+        self.keep_display_radial.setChecked(True)
+        self.color_display_radial = QtWidgets.QRadioButton("Color")
+        self.color_display_radial.setObjectName(
+            "cache_manager_color_display_qradialbutton")
+        self.color_display_radial.setToolTip("Sets GPU display color")
+        self.color_button = QtWidgets.QPushButton()
+        self.color_button.setEnabled(False)
+
+        display_layout.addWidget(gpu_display_label, 4, 0, 1, 1)
+        display_layout.addWidget(self.keep_display_radial, 4, 1, 1, 1)
+        display_layout.addWidget(self.color_display_radial, 4, 2, 1, 1)
+        display_layout.addWidget(self.color_button, 4, 3, 1, 1)
+
         # adds widgets to frame layout
         frame_layout.addWidget(label, 0, 0, 1, 1)
         frame_layout.addWidget(display_label, 1, 0, 1, 1)
@@ -144,6 +174,7 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         frame_layout.addWidget(path_label, 3, 0, 1, 1)
         frame_layout.addWidget(self.path_group_line, 3, 1, 1, 2)
         frame_layout.addWidget(self.path_group_button, 3, 3, 1, 1)
+        frame_layout.addWidget(display_frame, 4, 0, 1, 4)
         options_widget.set_layout(frame_layout)
 
         # search & filter widgets ---------------------------------------------
@@ -232,8 +263,45 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         timer = QtCore.QTimer(self)
         timer.singleShot(0, self.filter_line.setFocus)
 
-    def _show_browser(self):
+    def _get_color(self):
+        """ Returns the color value for the color button
         """
+
+        palette = self.color_button.palette()
+        qt_color = palette.color(QtGui.QPalette.Active, QtGui.QPalette.Button)
+        return (qt_color.red() / 255.0,
+                qt_color.green() / 255.0,
+                qt_color.blue() / 255.0)
+
+    def _lock_unlock_color(self):
+        """ Enables or disables the color picker widget when needed
+        """
+
+        if self.color_display_radial.isChecked():
+            self.color_button.setEnabled(True)
+        else:
+            self.color_button.setEnabled(False)
+
+    def _set_display_color(self):
+        """ Set the color to the button from the picker
+        """
+
+        # displays the picker and returns color
+        color = QtWidgets.QColorDialog.getColor()
+
+        # creates a new palette for the button when button is active
+        palette = QtGui.QPalette()
+        palette.setColor(QtGui.QPalette.Active, QtGui.QPalette.Button, color)
+        palette.setColor(QtGui.QPalette.Inactive, QtGui.QPalette.Button, color)
+
+        # set color to button
+        self.color_button.setPalette(palette)
+
+    def _show_browser(self):
+        """ Opens the file browser dialog
+
+        This file browser is used in order to pick where the caching files
+        are going to be stored
         """
 
         brower = QtWidgets.QFileDialog(self)
@@ -253,16 +321,39 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         print("Generating caches...")
 
+        # gets time line values
         start, end = get_timeline_values()
 
+        # gets selected items on list
         items = self.rigs_list_view.selectedIndexes()
 
+        # loops on items to generate caches
         for idx in items:
             rig_node = idx.data()
-            geo_node = get_model_group()  # need to add selection here
+
+            # checks for cache on scene
+            if not is_rig(rig_node):
+                print("Cache for {} already exists on your scene"
+                      .format(rig_node))
+                continue
+
+            # get models group inside the rig node
+            geo_node = get_model_group()
             model_group = find_model_group_inside_rig(geo_node, rig_node)
-            gpu_node = generate_gpu_cache(model_group, rig_node, start, end,
-                                          rig_node, True)
+
+            # cache with custom color
+            if self.color_display_radial.isChecked():
+                color = self._get_color()
+                with set_gpu_color_override(model_group, color):
+                    gpu_node = generate_gpu_cache(model_group, rig_node,
+                                                  start, end, rig_node, True)
+
+            # cache as it is
+            else:
+                gpu_node = generate_gpu_cache(model_group, rig_node,
+                                              start, end, rig_node, True)
+
+            # loads cache
             if gpu_node:
                 unload_rig(rig_node, self.rig_unload_radial.isChecked())
 

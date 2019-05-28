@@ -30,6 +30,7 @@ from mgear.animbits.cache_manager.mayautils import (
     load_rig,
     set_gpu_color_override,
     check_gpu_plugin)
+from mgear.animbits.cache_manager.model import CacheManagerStringListModel
 
 # UI WIDGET NAME
 UI_NAME = "mgear_cache_manager_qdialog"
@@ -253,7 +254,7 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # fills with scene rigs
         data = get_scene_rigs()
-        model = QtGui.QStringListModel(data)
+        model = CacheManagerStringListModel(data)
 
         self.proxy_model = QtCore.QSortFilterProxyModel()
         self.proxy_model.setSourceModel(model)
@@ -357,12 +358,15 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             if gpu_node:
                 unload_rig(rig_node, self.rig_unload_radial.isChecked())
 
+        # refreshes the model
+        self.refresh_model()
+
     def refresh_model(self):
         """ Updates the rigs model list
         """
 
         data = get_scene_rigs()
-        model = QtGui.QStringListModel(data)
+        model = CacheManagerStringListModel(data)
         self.proxy_model.setSourceModel(model)
 
     def reload_rig(self):
@@ -376,6 +380,9 @@ class AnimbitsCacheManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         for idx in items:
             rig_node = idx.data()
             load_rig(rig_node)
+
+        # refreshes the model
+        self.refresh_model()
 
     def set_cache_path(self):
         """ Sets the cache path inside the preference file

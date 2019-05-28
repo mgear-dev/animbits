@@ -186,7 +186,6 @@ def kill_script_job(name):
 
     for job in cmds.scriptJob(lj=True):
         if name in job:
-            print("Killing script job {}".format(job))
             _id = int(job.split(":")[0])
             cmds.scriptJob(k=_id)
 

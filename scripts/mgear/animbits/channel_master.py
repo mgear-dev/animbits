@@ -10,81 +10,9 @@ from functools import partial
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 
-DEFAULT_RANGE = 1000
-ATTR_SLIDER_TYPES = ["int", "float", "double", "doubleLinear", "doubleAngle"]
 
-
-# TODO: filter channel by color. By right click menu in a channel with color
-
-def get_keyable_attribute(node):
-    """Get keyable attributes from node
-
-    Args:
-        node (str): name of the node that have the attribute
-
-    Returns:
-        list: list of keyable attributes
-    """
-    attrs = cmds.listAttr(node, ud=False, k=True)
-
-    return attrs
-
-
-def get_single_attribute_config(node, attr):
-    """Summary
-
-    Args:
-        node (str): name of the node that have the attribute
-        attr (str): attribute name
-
-    Returns:
-        dict: attribute configuration
-    """
-    config = {}
-    config["type"] = cmds.attributeQuery(attr, node=node, attributeType=True)
-    config["niceName"] = cmds.attributeQuery(attr, node=node, niceName=True)
-    config["longName"] = cmds.attributeQuery(attr, node=node, longName=True)
-    if config["type"] in ATTR_SLIDER_TYPES:
-        if cmds.attributeQuery(attr, node=node, maxExists=True):
-            config["max"] = cmds.attributeQuery(attr, node=node, max=True)[0]
-        else:
-            config["max"] = DEFAULT_RANGE
-        if cmds.attributeQuery(attr, node=node, minExists=True):
-            config["min"] = cmds.attributeQuery(attr, node=node, min=True)[0]
-        else:
-            config["min"] = DEFAULT_RANGE * -1
-        config["default"] = cmds.attributeQuery(attr,
-                                                node=node,
-                                                listDefault=True)[0]
-    elif config["type"] in ["enum"]:
-        config["items"] = cmds.attributeQuery(attr, node=node, listEnum=True)
-
-    return config
-
-
-def get_attributes_config(node):
-    """Get the configuration to all the keyable attributes
-
-    Args:
-        node (str): name of the node that have the attribute
-
-    Returns:
-        dict: All keyable attributes configuration
-    """
-    attrs_config = {}
-    attrs_config["_attrs"] = get_keyable_attribute(node)
-    for attr in attrs_config["_attrs"]:
-        config = get_single_attribute_config(node, attr)
-        attrs_config[attr] = config
-
-    return attrs_config
-
-
-def refresh_channel_value():
-    # refresh channel value, after creation or scene manipulation
-    # should be deactivate when playback, timeline scroll, etc
-    pass
-
+from . import channel_master_utils as cmu
+from . import channel_master_widgets as cmw
 
 class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
@@ -94,7 +22,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.attrs = attrs
 
         self.setWindowTitle("Channel Master")
-        self.setMinimumWidth(150)
+        self.setMinimumWidth(155)
         if cmds.about(ntOS=True):
             flags = self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint
             self.setWindowFlags(flags)
@@ -112,7 +40,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def create_actions(self):
         # file actions
-        self.file_export_all_action = QtWidgets.QAction("Export All Tabs", self)
+        self.file_export_all_action = QtWidgets.QAction("Export All Tabs",
+                                                        self)
         self.file_export_all_action.setIcon(pyqt.get_icon("log-out"))
         self.file_export_current_action = QtWidgets.QAction(
             "Export Current Tab", self)
@@ -157,7 +86,6 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.tab_dup_action = QtWidgets.QAction("Duplicate Tab", self)
         self.tab_dup_action.setIcon(pyqt.get_icon("copy"))
 
-
     def create_widgets(self):
         # Menu bar
         self.menu_bar = QtWidgets.QMenuBar()
@@ -190,42 +118,41 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.tab_menu.addAction(self.tab_del_action)
 
         # Keyframe widgets
-        self.key_all_button = self.create_button(
+        self.key_all_button = cmw.create_button(
             size=34, icon="key", toolTip="Keyframe")
-        self.key_copy_button = self.create_button(
+        self.key_copy_button = cmw.create_button(
             size=34, icon="copy", toolTip="Copy Keyframe")
-        self.key_paste_button = self.create_button(
+        self.key_paste_button = cmw.create_button(
             size=34, icon="clipboard", toolTip="Paste Keyframe")
 
         # channel listing widgets
-        self.lock_button = self.create_button(
+        self.lock_button = cmw.create_button(
             size=34,
             icon="unlock",
             toggle_icon="lock",
             toolTip="Lock Channel Auto Refresh")
-        self.refresh_button = self.create_button(
+        self.refresh_button = cmw.create_button(
             size=34, icon="refresh-cw", toolTip="Refresh Channel List")
-        self.add_channel_button = self.create_button(
+        self.add_channel_button = cmw.create_button(
             size=17, icon="plus", toolTip="Add Selected Channels")
-        self.remove_channel_button = self.create_button(
+        self.remove_channel_button = cmw.create_button(
             size=17, icon="minus", toolTip="Remove Selected Channels")
 
         # search widgets
         self.search_label = QtWidgets.QLabel("Filter Channel: ")
         self.search_lineEdit = QtWidgets.QLineEdit()
-        self.search_clear_button = self.create_button(
+        self.search_clear_button = cmw.create_button(
             size=17, icon="delete", toolTip="Clear Search Field")
 
         # tabs widget
         self.tab_widget = QtWidgets.QTabWidget()
-        self.add_tab_button = self.create_button(
+        self.add_tab_button = cmw.create_button(
             size=17, icon="plus", toolTip="Add New Tab")
         self.add_tab_button.setFlat(True)
         self.add_tab_button.setMaximumWidth(34)
 
         self.tab_widget.setCornerWidget(self.add_tab_button,
                                         corner=QtCore.Qt.TopRightCorner)
-
 
         # Channels table
         pass
@@ -306,9 +233,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         header_view.resizeSection(1, 17)
 
         i = 0
-        for k in attrs["_attrs"]:
-            at = attrs[k]
-            if at["type"] in ATTR_SLIDER_TYPES:
+        for k in self.attrs["_attrs"]:
+            at = self.attrs[k]
+            if at["type"] in cmu.ATTR_SLIDER_TYPES:
+                ctl = pm.selected()[0].name()
                 val = cmds.getAttr(ctl + "." + k)
                 sld = pyflow_widgets.pyf_Slider(self,
                                                 defaultValue=val,
@@ -350,74 +278,25 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def refresh_channels(self):
         pass
 
-    ################
-    # helper methods
-    ################
 
-    def create_button(self,
-                      size=17,
-                      text=None,
-                      icon=None,
-                      toggle_icon=None,
-                      icon_size=None,
-                      toolTip=None):
-        """Create and configure a button
-
-        Args:
-            size (int, optional): Size of the button
-            text (str, optional): Text of the button
-            icon (str, optional): Icon name
-            toggle_icon (str, optional): Toggle icon name. If exist will make
-                                         the button checkable
-            icon_size (int, optional): Icon size
-            toolTip (str, optional): Buttom tool tip
-
-        Returns:
-            QPushButton: The reated button
-        """
-        button = QtWidgets.QPushButton()
-        button.setMaximumHeight(size)
-        button.setMinimumHeight(size)
-        button.setMaximumWidth(size)
-        button.setMinimumWidth(size)
-
-        if toolTip:
-            button.setToolTip(toolTip)
-
-        if text:
-            button.setText(text)
-
-        if icon:
-            if not icon_size:
-                icon_size = size - 3
-            button.setIcon(pyqt.get_icon(icon, icon_size))
-
-        if toggle_icon:
-
-            button.setCheckable(True)
-
-            def changeIcon(button=button,
-                           icon=icon,
-                           toggle_icon=toggle_icon,
-                           size=icon_size):
-                if button.isChecked():
-                    button.setIcon(pyqt.get_icon(toggle_icon, size))
-                else:
-                    button.setIcon(pyqt.get_icon(icon, size))
-
-            button.clicked.connect(changeIcon)
-
-        return button
 
 if __name__ == "__main__":
+
+    from mgear.animbits import channel_master_utils
+    reload(channel_master_utils)
+    from mgear.animbits import channel_master_widgets
+    reload(channel_master_widgets)
+    from mgear.animbits import channel_master
+    reload(channel_master)
+
 
     start = timeit.default_timer()
 
     ctl = pm.selected()[0].name()
-    attrs = get_attributes_config(ctl)
-    # attrs = []
+    attrs = channel_master_utils.get_attributes_config(ctl)
 
-    pyqt.showDialog(partial(ChannelMaster, attrs), dockable=True)
+    pyqt.showDialog(partial(channel_master.ChannelMaster, attrs),
+                    dockable=True)
 
     end = timeit.default_timer()
     timeConsumed = end - start

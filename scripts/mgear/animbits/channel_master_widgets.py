@@ -83,7 +83,7 @@ def create_button(size=17,
     return button
 
 
-class ChannelTable(QtWidgets.QTableView):
+class ChannelTable(QtWidgets.QTableWidget):
 
     def __init__(self, attrs_config, parent=None):
         super(ChannelTable, self).__init__(parent)

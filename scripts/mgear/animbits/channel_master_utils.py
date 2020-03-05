@@ -1,7 +1,7 @@
 import maya.cmds as cmds
 
 
-ATTR_SLIDER_TYPES = ["int", "float", "double", "doubleLinear", "doubleAngle"]
+ATTR_SLIDER_TYPES = ["long", "float", "double", "doubleLinear", "doubleAngle"]
 DEFAULT_RANGE = 1000
 
 
@@ -32,9 +32,11 @@ def get_single_attribute_config(node, attr):
         dict: attribute configuration
     """
     config = {}
+    config["ctl"] = node
     config["type"] = cmds.attributeQuery(attr, node=node, attributeType=True)
     config["niceName"] = cmds.attributeQuery(attr, node=node, niceName=True)
     config["longName"] = cmds.attributeQuery(attr, node=node, longName=True)
+    config["fullName"] = config["ctl"] + "." + config["longName"]
     if config["type"] in ATTR_SLIDER_TYPES:
         if cmds.attributeQuery(attr, node=node, maxExists=True):
             config["max"] = cmds.attributeQuery(attr, node=node, max=True)[0]
@@ -48,7 +50,9 @@ def get_single_attribute_config(node, attr):
                                                 node=node,
                                                 listDefault=True)[0]
     elif config["type"] in ["enum"]:
-        config["items"] = cmds.attributeQuery(attr, node=node, listEnum=True)
+        items = cmds.attributeQuery(attr, node=node, listEnum=True)[0]
+
+        config["items"] = [x for x in items.split(":")]
 
     return config
 

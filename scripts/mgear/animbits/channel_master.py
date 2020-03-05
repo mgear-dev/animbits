@@ -10,19 +10,22 @@ from functools import partial
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 
-
 from . import channel_master_utils as cmu
 from . import channel_master_widgets as cmw
 
+
 class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
-    def __init__(self, attrs, parent=None):
+    def __init__(self, parent=None):
         super(ChannelMaster, self).__init__(parent)
         self.deleteLater = True
-        self.attrs = attrs
 
         self.setWindowTitle("Channel Master")
-        self.setMinimumWidth(155)
+        min_w = 155
+        default_w = 250
+        default_h = 600
+        self.setMinimumWidth(min_w)
+        self.resize(default_w, default_h)
         if cmds.about(ntOS=True):
             flags = self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint
             self.setWindowFlags(flags)
@@ -30,6 +33,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.setWindowFlags(QtCore.Qt.Tool)
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, 1)
+
 
         self.create_actions()
         self.create_widgets()
@@ -155,18 +159,12 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                                         corner=QtCore.Qt.TopRightCorner)
 
         # Channels table
-        pass
+        ctl = pm.selected()[0].name()
+        attrs_config = cmu.get_attributes_config(ctl)
+        self.main_table = cmw.ChannelTable(attrs_config, self)
 
     def create_layout(self):
 
-        table_style = """
-        QTableView {
-           border: 0 solid transparent;
-        }
-        """
-
-       # border-radius: 5px;
-       # height: 32px;
         line_edit_style = """
         QLineEdit {
            border: 0 solid transparent;
@@ -182,14 +180,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         main_layout.setMenuBar(self.menu_bar)
 
         # keyframe buttons Layout
-        # key_copypaste_buttons_layout = QtWidgets.QVBoxLayout()
-        # key_copypaste_buttons_layout.addWidget(self.key_copy_button)
-        # key_copypaste_buttons_layout.addWidget(self.key_paste_button)
         key_buttons_layout = QtWidgets.QHBoxLayout()
         key_buttons_layout.addWidget(self.key_all_button)
         key_buttons_layout.addWidget(self.key_copy_button)
         key_buttons_layout.addWidget(self.key_paste_button)
-        # key_buttons_layout.addLayout(key_copypaste_buttons_layout)
 
         # channel listing buttons Layout
         channel_add_remove_buttons_layout = QtWidgets.QVBoxLayout()
@@ -218,66 +212,14 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         main_layout.addLayout(buttons_layout)
         main_layout.addWidget(self.tab_widget)
 
-        # table layout TEMP
-        main_table = QtWidgets.QTableWidget(self)
-        main_table.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
-                                 QtWidgets.QSizePolicy.Expanding)
-        main_table.setColumnCount(3)
-        main_table.verticalHeader().setVisible(False)
-        main_table.horizontalHeader().setVisible(False)
-        header_view = main_table.horizontalHeader()
-        main_table.setStyleSheet(table_style)
-
-        header_view.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
-        header_view.resizeSection(0, 80)
-        header_view.resizeSection(1, 17)
-
-        i = 0
-        for k in self.attrs["_attrs"]:
-            at = self.attrs[k]
-            if at["type"] in cmu.ATTR_SLIDER_TYPES:
-                ctl = pm.selected()[0].name()
-                val = cmds.getAttr(ctl + "." + k)
-                sld = pyflow_widgets.pyf_Slider(self,
-                                                defaultValue=val,
-                                                sliderRange=(at["min"],
-                                                             at["max"]))
-
-                label = QtWidgets.QLabel(at["niceName"] + "  ")
-                label.setMinimumWidth(80)
-                label.setMaximumWidth(80)
-                label.setToolTip(at["longName"])
-                label.setAlignment(QtCore.Qt.AlignBottom
-                                   | QtCore.Qt.AlignRight)
-
-                button = QtWidgets.QPushButton()
-                button.setMaximumHeight(17)
-                button.setMinimumHeight(17)
-                button.setMaximumWidth(17)
-                button.setMinimumWidth(17)
-                # button.setIcon(pyqt.get_icon("unlock", 11))
-                button.setCheckable(True)
-
-                main_table.insertRow(i)
-                main_table.setRowHeight(i, 17)
-                main_table.setCellWidget(i, 0, label)
-                main_table.setCellWidget(i, 1, button)
-                main_table.setCellWidget(i, 2, sld)
-                i += 1
-
-                # button.clicked.connect(partial(self.changeIcon, button))
-
-        self.tab_widget.addTab(main_table, "Main")
-        self.tab_widget.insertTab(1, QtWidgets.QPushButton(), "dos")
-        self.tab_widget.insertTab(6, QtWidgets.QPushButton(), "new name")
-        # main_layout.addStretch()
+        # main_table
+        self.tab_widget.addTab(self.main_table, "Main")
 
     def create_connections(self):
         pass
 
     def refresh_channels(self):
         pass
-
 
 
 if __name__ == "__main__":
@@ -288,7 +230,6 @@ if __name__ == "__main__":
     reload(channel_master_widgets)
     from mgear.animbits import channel_master
     reload(channel_master)
-
 
     start = timeit.default_timer()
 

@@ -83,6 +83,17 @@ def create_button(size=17,
     return button
 
 
+def value_update(ch, atttr_confg, *args):
+    """Update the attribute from the  channel value
+
+    Args:
+        ch (QWidget): The channel widget
+        atttr_confg (dict): attribute configuration data
+        *args: the current value
+    """
+    cmds.setAttr(atttr_confg["fullName"], args[0])
+
+
 class ChannelTable(QtWidgets.QTableWidget):
 
     def __init__(self, attrs_config, parent=None):
@@ -103,7 +114,7 @@ class ChannelTable(QtWidgets.QTableWidget):
 
         header_view.resizeSection(0, 80)
         header_view.setSectionResizeMode(
-                0, QtWidgets.QHeaderView.ResizeToContents)
+            0, QtWidgets.QHeaderView.ResizeToContents)
         header_view.resizeSection(1, 17)
         header_view.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
 
@@ -124,6 +135,9 @@ class ChannelTable(QtWidgets.QTableWidget):
                                                    sliderRange=(at["min"],
                                                                 at["max"]))
 
+                ch_ctl.valueChanged.connect(
+                    partial(value_update, ch_ctl, at))
+
             elif at["type"] == "bool":
 
                 ch_ctl = QtWidgets.QWidget()
@@ -138,6 +152,9 @@ class ChannelTable(QtWidgets.QTableWidget):
                 if val:
                     cbox.setChecked(True)
 
+                cbox.toggled.connect(
+                    partial(value_update, ch_ctl, at))
+
             elif at["type"] == "enum":
 
                 # we handle special naming for separators
@@ -147,6 +164,9 @@ class ChannelTable(QtWidgets.QTableWidget):
                     ch_ctl = QtWidgets.QComboBox()
                     ch_ctl.addItems(at["items"])
                     ch_ctl.setCurrentIndex(val)
+
+                    ch_ctl.currentIndexChanged.connect(
+                        partial(value_update, ch_ctl, at))
 
             label_item = QtWidgets.QTableWidgetItem(at["niceName"] + "  ")
             label_item.setData(QtCore.Qt.UserRole, at)

@@ -214,12 +214,33 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # main_table
         self.tab_widget.addTab(self.main_table, "Main")
+        self.tab_widget.addTab(QtWidgets.QTabWidget(), "custom")
 
     def create_connections(self):
-        pass
+        self.search_lineEdit.textChanged.connect(self.search_channels)
+        self.search_clear_button.clicked.connect(self.search_clear)
 
     def refresh_channels(self):
         pass
+
+    def search_channels(self):
+        """Filter the visible rows in the channel table.
+        NOTE: ideally this should be implemented with a model/view patter
+        using QTableView
+        """
+        search_name = self.search_lineEdit.text()
+        tab = self.tab_widget.currentIndex()
+        table =  self.tab_widget.widget(tab)
+        for i in xrange(table.rowCount()):
+            item = table.item(i, 0)
+            if search_name in item.text().lower() or not search_name:
+                table.setRowHidden(i, False)
+            else:
+                table.setRowHidden(i, True)
+
+    def search_clear(self):
+        self.search_lineEdit.setText("")
+
 
 
 if __name__ == "__main__":

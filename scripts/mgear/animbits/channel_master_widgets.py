@@ -83,22 +83,12 @@ def create_button(size=17,
     return button
 
 
-def value_update(ch, atttr_confg, *args):
-    """Update the attribute from the  channel value
-
-    Args:
-        ch (QWidget): The channel widget
-        atttr_confg (dict): attribute configuration data
-        *args: the current value
-    """
-    cmds.setAttr(atttr_confg["fullName"], args[0])
-
-
 class ChannelTable(QtWidgets.QTableWidget):
 
     def __init__(self, attrs_config, parent=None):
         super(ChannelTable, self).__init__(parent)
         self.attrs_config = attrs_config
+        self.trigger_value_update = True
         self.setup_table()
         self.config_table()
         self.update_table()
@@ -119,6 +109,18 @@ class ChannelTable(QtWidgets.QTableWidget):
         header_view.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
 
     def config_table(self):
+
+        def value_update(atttr_config, *args):
+            """Update the attribute from the  channel value
+
+            Args:
+                ch (QWidget): The channel widget
+                atttr_config (dict): attribute configuration data
+                *args: the current value
+            """
+            if self.trigger_value_update:
+                cmds.setAttr(atttr_config["fullName"], args[0])
+
         i = 0
         for k in self.attrs_config["_attrs"]:
             at = self.attrs_config[k]
@@ -136,7 +138,7 @@ class ChannelTable(QtWidgets.QTableWidget):
                                                                 at["max"]))
 
                 ch_ctl.valueChanged.connect(
-                    partial(value_update, ch_ctl, at))
+                    partial(value_update, at))
 
             elif at["type"] == "bool":
 
@@ -153,7 +155,7 @@ class ChannelTable(QtWidgets.QTableWidget):
                     cbox.setChecked(True)
 
                 cbox.toggled.connect(
-                    partial(value_update, ch_ctl, at))
+                    partial(value_update, at))
 
             elif at["type"] == "enum":
 
@@ -166,7 +168,7 @@ class ChannelTable(QtWidgets.QTableWidget):
                     ch_ctl.setCurrentIndex(val)
 
                     ch_ctl.currentIndexChanged.connect(
-                        partial(value_update, ch_ctl, at))
+                        partial(value_update, at))
 
             label_item = QtWidgets.QTableWidgetItem(at["niceName"] + "  ")
             label_item.setData(QtCore.Qt.UserRole, at)

@@ -41,6 +41,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.refresh_channels()
 
+    def enterEvent(self, event):
+        self.refresh_channels()
+
+
     def create_actions(self):
         # file actions
         self.file_export_all_action = QtWidgets.QAction("Export All Tabs",
@@ -230,7 +234,26 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.search_clear_button.clicked.connect(self.search_clear)
 
     def refresh_channels(self):
-        pass
+        table = self.get_current_table()
+        if table:
+            table.trigger_value_update = False
+            for i in xrange(table.rowCount()):
+                ch_item = table.cellWidget(i, 2)
+                item = table.item(i, 0)
+                attr = item.data(QtCore.Qt.UserRole)
+                val =  cmds.getAttr(attr["fullName"])
+                if attr["type"] in cmu.ATTR_SLIDER_TYPES:
+                    ch_item.setValue(val)
+                elif attr["type"] == "bool":
+                    if val:
+                        layout =ch_item.findChildren(QtWidgets.QHBoxLayout)[0]
+                        cbox =layout.findChildren(QtWidgets.QCheckBox)[0]
+                        cbox.setChecked(True)
+                elif attr["type"] == "enum":
+
+                    ch_item.setCurrentIndex(val)
+            table.trigger_value_update = True
+
 
     def get_current_table(self):
         """get the active channel table for active tab

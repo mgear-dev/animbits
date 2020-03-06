@@ -101,9 +101,11 @@ class ChannelTable(QtWidgets.QTableWidget):
         header_view = self.horizontalHeader()
         self.setStyleSheet(TABLE_STYLE)
 
-        header_view.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
         header_view.resizeSection(0, 80)
+        header_view.setSectionResizeMode(
+                0, QtWidgets.QHeaderView.ResizeToContents)
         header_view.resizeSection(1, 17)
+        header_view.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
 
     def config_table(self):
         i = 0

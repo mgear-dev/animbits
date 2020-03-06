@@ -33,6 +33,7 @@ def get_single_attribute_config(node, attr):
     """
     config = {}
     config["ctl"] = node
+    config["color"] = None # This is a place holder for the channel UI color
     config["type"] = cmds.attributeQuery(attr, node=node, attributeType=True)
     config["niceName"] = cmds.attributeQuery(attr, node=node, niceName=True)
     config["longName"] = cmds.attributeQuery(attr, node=node, longName=True)

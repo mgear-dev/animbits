@@ -34,7 +34,6 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, 1)
 
-
         self.create_actions()
         self.create_widgets()
         self.create_layout()
@@ -217,11 +216,34 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.tab_widget.addTab(QtWidgets.QTabWidget(), "custom")
 
     def create_connections(self):
+        # Actions
+        self.display_fullname_action.triggered.connect(
+            self.action_display_fullname)
+        self.display_order_default_action.triggered.connect(
+            self.action_default_order)
+        self.display_order_alphabetical_action.triggered.connect(
+            self.action_alphabetical_order)
+
+
+        # Buttons
         self.search_lineEdit.textChanged.connect(self.search_channels)
         self.search_clear_button.clicked.connect(self.search_clear)
 
     def refresh_channels(self):
         pass
+
+    def get_current_table(self):
+        """get the active channel table for active tab
+
+        Returns:
+            QTableWidget: the channel table widget
+        """
+        tab = self.tab_widget.currentIndex()
+        table = self.tab_widget.widget(tab)
+        return table
+
+    def get_all_tables(self):
+        return
 
     def search_channels(self):
         """Filter the visible rows in the channel table.
@@ -229,18 +251,43 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         using QTableView
         """
         search_name = self.search_lineEdit.text()
-        tab = self.tab_widget.currentIndex()
-        table =  self.tab_widget.widget(tab)
+        table = self.get_current_table()
         for i in xrange(table.rowCount()):
             item = table.item(i, 0)
-            if search_name in item.text().lower() or not search_name:
+            if search_name.lower() in item.text().lower() or not search_name:
                 table.setRowHidden(i, False)
             else:
                 table.setRowHidden(i, True)
 
     def search_clear(self):
+        """Clear search field
+        """
         self.search_lineEdit.setText("")
 
+    def action_display_fullname(self):
+        """Toggle channel name  from nice name to full name
+        """
+        table = self.get_current_table()
+        if self.display_fullname_action.isChecked():
+            for i in xrange(table.rowCount()):
+                item = table.item(i, 0)
+                txt = item.data(QtCore.Qt.UserRole)["fullName"] + "  "
+                item.setText(txt)
+        else:
+            for i in xrange(table.rowCount()):
+                item = table.item(i, 0)
+                txt = item.data(QtCore.Qt.UserRole)["niceName"] + "  "
+                item.setText(txt)
+
+    def action_default_order(self):
+
+        table = self.get_current_table()
+        print "Need to be implemented from the node stored order"
+
+    def action_alphabetical_order(self):
+
+        table = self.get_current_table()
+        table.sortItems(0, order=QtCore.Qt.AscendingOrder)
 
 
 if __name__ == "__main__":

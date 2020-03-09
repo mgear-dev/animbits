@@ -121,6 +121,13 @@ class ChannelTable(QtWidgets.QTableWidget):
             if self.trigger_value_update:
                 cmds.setAttr(atttr_config["fullName"], args[0])
 
+        def open_undo_chunk():
+            cmds.undoInfo(openChunk=True)
+
+        def close_undo_chunk():
+            cmds.undoInfo(closeChunk=True)
+
+
         i = 0
         for k in self.attrs_config["_attrs"]:
             at = self.attrs_config[k]
@@ -139,6 +146,8 @@ class ChannelTable(QtWidgets.QTableWidget):
 
                 ch_ctl.valueChanged.connect(
                     partial(value_update, at))
+                ch_ctl.sliderPressed.connect(open_undo_chunk)
+                ch_ctl.sliderReleased.connect(close_undo_chunk)
 
             elif at["type"] == "bool":
 

@@ -1,4 +1,5 @@
 import maya.cmds as cmds
+import pymel.core as pm
 
 
 ATTR_SLIDER_TYPES = ["long", "float", "double", "doubleLinear", "doubleAngle"]
@@ -80,3 +81,13 @@ def refresh_channel_value():
     # refresh channel value, after creation or scene manipulation
     # should be deactivate when playback, timeline scroll, etc
     pass
+
+
+def get_table_config_from_selection():
+        oSel = pm.selected()
+        attrs_config = {}
+        if oSel:
+            ctl = oSel[-1].name()
+            attrs_config = get_attributes_config(ctl)
+
+        return attrs_config

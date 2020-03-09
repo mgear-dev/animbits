@@ -89,9 +89,9 @@ class ChannelTable(QtWidgets.QTableWidget):
         super(ChannelTable, self).__init__(parent)
         self.attrs_config = attrs_config
         self.trigger_value_update = True
+        self.track_widgets = []
         self.setup_table()
         self.config_table()
-        self.update_table()
 
     def setup_table(self):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
@@ -127,6 +127,8 @@ class ChannelTable(QtWidgets.QTableWidget):
         def close_undo_chunk():
             cmds.undoInfo(closeChunk=True)
 
+        if not self.attrs_config:
+            return
 
         i = 0
         for k in self.attrs_config["_attrs"]:
@@ -195,7 +197,47 @@ class ChannelTable(QtWidgets.QTableWidget):
             self.setCellWidget(i, 1, key_button)
             self.setCellWidget(i, 2, ch_ctl)
 
+            self.track_widgets.append([key_button, ch_ctl])
+
             i += 1
 
     def update_table(self):
-        pass
+        """Update the  table with the channels of the selected object
+        If multiple objects are selected. Only the las selected will be listed
+        """
+        self.clear()
+        for i in xrange(self.rowCount()):
+            self.removeRow(0)
+
+
+        for x in self.track_widgets:
+            x[0].deleteLater()
+            x[1].deleteLater()
+
+        self.track_widgets = []
+
+        self.attrs_config = cmu.get_table_config_from_selection()
+        self.config_table()
+
+
+    def refresh_channels_values(self):
+        """refresh the channel values of the table
+        """
+        self.trigger_value_update = False
+        for i in xrange(self.rowCount()):
+            ch_item = self.cellWidget(i, 2)
+            item = self.item(i, 0)
+            attr = item.data(QtCore.Qt.UserRole)
+            val = cmds.getAttr(attr["fullName"])
+            if attr["type"] in cmu.ATTR_SLIDER_TYPES:
+                ch_item.setValue(val)
+            elif attr["type"] == "bool":
+                if val:
+                    # print ch_item.findChildren(QtWidgets.QCheckBox)
+                    # layout = ch_item.findChildren(QtWidgets.QHBoxLayout)[0]
+                    cbox = ch_item.findChildren(QtWidgets.QCheckBox)[0]
+                    cbox.setChecked(True)
+            elif attr["type"] == "enum":
+
+                ch_item.setCurrentIndex(val)
+        self.trigger_value_update = True

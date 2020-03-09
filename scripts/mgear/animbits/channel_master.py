@@ -5,6 +5,7 @@ from mgear.core import pyqt
 from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
+from mgear.core import callbackManager
 import timeit
 from functools import partial
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
@@ -18,7 +19,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super(ChannelMaster, self).__init__(parent)
-        self.deleteLater = True
+
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
 
         self.setWindowTitle("Channel Master")
         min_w = 155
@@ -39,11 +41,28 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.create_layout()
         self.create_connections()
 
-        self.refresh_channels()
+        self.refresh_channels_values()
 
-    def enterEvent(self, event):
-        self.refresh_channels()
+        self.cb_manager = callbackManager.CallbackManager()
 
+        self.add_callback()
+
+    def add_callback(self):
+        self.cb_manager.selectionChangedCB("Channel_Master",
+                                           self.selection_change)
+
+    def enterEvent(self, evnt):
+        self.refresh_channels_values()
+
+    def close(self):
+        self.cb_manager.removeAllManagedCB()
+        self.deleteLater()
+
+    def closeEvent(self, evnt):
+        self.close()
+
+    def dockCloseEventTriggered(self):
+        self.close()
 
     def create_actions(self):
         # file actions
@@ -161,10 +180,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.tab_widget.setCornerWidget(self.add_tab_button,
                                         corner=QtCore.Qt.TopRightCorner)
 
-        # Channels table
-        ctl = pm.selected()[0].name()
-        attrs_config = cmu.get_attributes_config(ctl)
-        self.main_table = cmw.ChannelTable(attrs_config, self)
+        # Init Main Channels table
+        self.main_table = cmw.ChannelTable(
+            cmu.get_table_config_from_selection(), self)
 
     def create_layout(self):
 
@@ -217,7 +235,6 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # main_table
         self.tab_widget.addTab(self.main_table, "Main")
-        self.tab_widget.addTab(QtWidgets.QTabWidget(), "custom")
 
     def create_connections(self):
         # Actions
@@ -228,32 +245,11 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.display_order_alphabetical_action.triggered.connect(
             self.action_alphabetical_order)
 
-
         # Buttons
         self.search_lineEdit.textChanged.connect(self.search_channels)
         self.search_clear_button.clicked.connect(self.search_clear)
 
-    def refresh_channels(self):
-        table = self.get_current_table()
-        if table:
-            table.trigger_value_update = False
-            for i in xrange(table.rowCount()):
-                ch_item = table.cellWidget(i, 2)
-                item = table.item(i, 0)
-                attr = item.data(QtCore.Qt.UserRole)
-                val =  cmds.getAttr(attr["fullName"])
-                if attr["type"] in cmu.ATTR_SLIDER_TYPES:
-                    ch_item.setValue(val)
-                elif attr["type"] == "bool":
-                    if val:
-                        layout =ch_item.findChildren(QtWidgets.QHBoxLayout)[0]
-                        cbox =layout.findChildren(QtWidgets.QCheckBox)[0]
-                        cbox.setChecked(True)
-                elif attr["type"] == "enum":
-
-                    ch_item.setCurrentIndex(val)
-            table.trigger_value_update = True
-
+        self.refresh_button.clicked.connect(self.update_main_table)
 
     def get_current_table(self):
         """get the active channel table for active tab
@@ -267,6 +263,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def get_all_tables(self):
         return
+
+    def update_main_table(self):
+        # TODO: add confirmation box if lock button is pressed
+        self.main_table.update_table()
 
     def search_channels(self):
         """Filter the visible rows in the channel table.
@@ -287,6 +287,13 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         self.search_lineEdit.setText("")
 
+    def refresh_channels_values(self):
+        """Refresh the channel values of the current table
+        """
+        table = self.get_current_table()
+        if table:
+            table.refresh_channels_values()
+
     def action_display_fullname(self):
         """Toggle channel name  from nice name to full name
         """
@@ -304,13 +311,17 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def action_default_order(self):
 
-        table = self.get_current_table()
+        # table = self.get_current_table()
         print "Need to be implemented from the node stored order"
 
     def action_alphabetical_order(self):
 
         table = self.get_current_table()
         table.sortItems(0, order=QtCore.Qt.AscendingOrder)
+
+    def selection_change(self, *args):
+        if not self.lock_button.isChecked():
+            self.update_main_table()
 
 
 if __name__ == "__main__":

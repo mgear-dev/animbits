@@ -48,8 +48,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.add_callback()
 
     def add_callback(self):
-        self.cb_manager.selectionChangedCB("Channel_Master",
+        self.cb_manager.selectionChangedCB("Channel_Master_selection_CB",
                                            self.selection_change)
+        self.cb_manager.userTimeChangedCB("Channel_Master_userTimeChange_CB",
+                                          self.time_changed)
 
     def enterEvent(self, evnt):
         self.refresh_channels_values()
@@ -322,6 +324,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def selection_change(self, *args):
         if not self.lock_button.isChecked():
             self.update_main_table()
+
+    def time_changed(self, *args):
+        self.refresh_channels_values()
 
 
 if __name__ == "__main__":

@@ -83,6 +83,99 @@ def create_button(size=17,
     return button
 
 
+def value_equal_keyvalue(attr):
+    """Compare the animation value and the current value of a given attribute
+
+    Args:
+        attr (str): the attribute fullName
+
+    Returns:
+        bool: Return true is current value and animation value are the same
+    """
+    anim_val = cmu.get_anim_value_at_current_frame(attr)
+    val = cmds.getAttr(attr)
+    if anim_val == val:
+        return True
+
+
+def refresh_key_button_color(button, attr):
+    """refresh the key button color based on the animation of a given attribute
+
+    Args:
+        button (QPushButton): The button to update the color
+        attr (str): the attribute fullName
+    """
+    if cmu.channel_has_animation(attr):
+        if value_equal_keyvalue(attr):
+            if cmu.current_frame_has_key(attr):
+                button.setStyleSheet(
+                    'QPushButton {background-color: #ce5846;}')
+            else:
+                button.setStyleSheet(
+                    'QPushButton {background-color: #89bf72;}')
+        else:
+            button.setStyleSheet(
+                'QPushButton {background-color: #ddd87c;}')
+
+    else:
+        button.setStyleSheet(
+            'QPushButton {background-color: #ABA8A6;}')
+
+
+def create_key_button(item_data):
+    """Create a keyframing button
+
+    Args:
+        item_data (dict): Attribute channel configuration dictionary
+
+    Returns:
+        QPushButton: The keyframe button
+    """
+    button = create_button()
+    attr = item_data["fullName"]
+    refresh_key_button_color(button, attr)
+
+    # right click menu
+    pop_menu = QtWidgets.QMenu(button)
+
+    next_key_action = QtWidgets.QAction('Next Keyframe', button)
+    next_key_action.setIcon(pyqt.get_icon("arrow-right"))
+    next_key_action.triggered.connect(partial(cmu.next_keyframe, attr))
+    pop_menu.addAction(next_key_action)
+
+    previous_key_action = QtWidgets.QAction('previous Keyframe', button)
+    previous_key_action.setIcon(pyqt.get_icon("arrow-left"))
+    previous_key_action.triggered.connect(partial(cmu.previous_keyframe, attr))
+    pop_menu.addAction(previous_key_action)
+
+    pop_menu.addSeparator()
+
+    remove_animation_action = QtWidgets.QAction('Remove Animation', button)
+    remove_animation_action.setIcon(pyqt.get_icon("trash"))
+    remove_animation_action.triggered.connect(
+        partial(cmu.remove_animation, attr))
+    pop_menu.addAction(remove_animation_action)
+
+    def context_menu(point):
+        pop_menu.exec_(button.mapToGlobal(point))
+
+    button.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+    button.customContextMenuRequested.connect(context_menu)
+
+    def button_clicked():
+        if cmu.current_frame_has_key(attr) and value_equal_keyvalue(attr):
+            cmu.remove_key(attr)
+
+        else:
+            cmu.set_key(attr)
+
+        refresh_key_button_color(button, attr)
+
+    button.clicked.connect(button_clicked)
+
+    return button
+
+
 class ChannelTable(QtWidgets.QTableWidget):
 
     def __init__(self, attrs_config, parent=None):
@@ -110,7 +203,7 @@ class ChannelTable(QtWidgets.QTableWidget):
 
     def config_table(self):
 
-        def value_update(atttr_config, *args):
+        def value_update(attr_config, *args):
             """Update the attribute from the  channel value
 
             Args:
@@ -119,7 +212,16 @@ class ChannelTable(QtWidgets.QTableWidget):
                 *args: the current value
             """
             if self.trigger_value_update:
-                cmds.setAttr(atttr_config["fullName"], args[0])
+                cmds.setAttr(attr_config["fullName"], args[0])
+
+                for i in xrange(self.rowCount()):
+                    item = self.item(i, 0)
+                    attr = item.data(QtCore.Qt.UserRole)
+                    if attr["fullName"] == attr_config["fullName"]:
+                        button = self.cellWidget(i, 1)
+                        refresh_key_button_color(button,
+                                                 attr_config["fullName"])
+                        break
 
         def open_undo_chunk():
             cmds.undoInfo(openChunk=True)
@@ -189,7 +291,14 @@ class ChannelTable(QtWidgets.QTableWidget):
 
             # print label_item.data(QtCore.Qt.UserRole)
 
-            key_button = create_button()
+            key_button = create_key_button(at)
+
+            # TODO:
+            # Crear funciones para keyframes.
+            #   -Key
+            #   -Remove key
+            # in update channel values tiene que hacer check de si hay animacion
+            # en los botones y poner el color
 
             self.insertRow(i)
             self.setRowHeight(i, 17)
@@ -209,7 +318,6 @@ class ChannelTable(QtWidgets.QTableWidget):
         for i in xrange(self.rowCount()):
             self.removeRow(0)
 
-
         for x in self.track_widgets:
             x[0].deleteLater()
             x[1].deleteLater()
@@ -218,7 +326,6 @@ class ChannelTable(QtWidgets.QTableWidget):
 
         self.attrs_config = cmu.get_table_config_from_selection()
         self.config_table()
-
 
     def refresh_channels_values(self):
         """refresh the channel values of the table
@@ -238,6 +345,10 @@ class ChannelTable(QtWidgets.QTableWidget):
                     cbox = ch_item.findChildren(QtWidgets.QCheckBox)[0]
                     cbox.setChecked(True)
             elif attr["type"] == "enum":
-
                 ch_item.setCurrentIndex(val)
+
+            # refresh button color
+            button_item = self.cellWidget(i, 1)
+            refresh_key_button_color(button_item, attr["fullName"])
+
         self.trigger_value_update = True

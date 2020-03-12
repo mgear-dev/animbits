@@ -28,6 +28,10 @@ CHECKBOX_STYLE = """
         """
 
 
+##################
+# Helper functions
+##################
+
 def create_button(size=17,
                   text=None,
                   icon=None,
@@ -176,6 +180,11 @@ def create_key_button(item_data):
     return button
 
 
+###################################################
+# Channel Table Class
+###################################################
+
+
 class ChannelTable(QtWidgets.QTableWidget):
 
     def __init__(self, attrs_config, parent=None):
@@ -183,8 +192,67 @@ class ChannelTable(QtWidgets.QTableWidget):
         self.attrs_config = attrs_config
         self.trigger_value_update = True
         self.track_widgets = []
+        self.create_menu()
         self.setup_table()
         self.config_table()
+
+    def create_menu(self):
+        self.menu = QtWidgets.QMenu(self)
+
+        set_color_action = QtWidgets.QAction('Set Color', self)
+        set_color_action.setIcon(pyqt.get_icon("edit-2"))
+        set_color_action.triggered.connect(self.set_color_slot)
+        self.menu.addAction(set_color_action)
+
+        clear_color_action = QtWidgets.QAction('Clear Color', self)
+        clear_color_action.setIcon(pyqt.get_icon("x-octagon"))
+        clear_color_action.triggered.connect(self.clear_color_slot)
+        self.menu.addAction(clear_color_action)
+        self.menu.addSeparator()
+
+        # if there is no slider in the selected item will print  an info msg
+        set_range_action = QtWidgets.QAction('Set Range', self)
+        set_range_action.setIcon(pyqt.get_icon("sliders"))
+        set_range_action.triggered.connect(self.set_range_slot)
+        self.menu.addAction(set_range_action)
+
+    def set_color_slot(self):
+        items = self.selectedItems()
+        if items:
+            color = QtWidgets.QColorDialog.getColor(
+                items[0].background().color(),
+                parent=self,
+                options=QtWidgets.QColorDialog.DontUseNativeDialog)
+            if not color.isValid():
+                return
+
+            for itm in items:
+                itm.setBackground(color)
+
+    def clear_color_slot(self):
+        items = self.selectedItems()
+        if items:
+            for itm in items:
+                itm.setBackground(QtGui.QColor(43, 43, 43))
+
+    def set_range_slot(self):
+        items = self.selectedItems()
+        if items:
+            init_range = None
+            for itm in items:
+                attr = itm.data(QtCore.Qt.UserRole)
+                if attr["type"] in cmu.ATTR_SLIDER_TYPES:
+                    ch_item = self.cellWidget(itm.row(), 2)
+                    if not init_range:
+                        init_range = ch_item.getRange()
+                        print init_range
+                        set_range_dialog = SetRangeDialog(init_range,
+                                                          self)
+                        result = set_range_dialog.exec_()
+
+                        if result == QtWidgets.QDialog.Accepted:
+                            new_range = set_range_dialog.get_range()
+                            ch_item.setRange(new_range[0], new_range[1])
 
     def setup_table(self):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
@@ -201,6 +269,11 @@ class ChannelTable(QtWidgets.QTableWidget):
         header_view.resizeSection(1, 17)
         header_view.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
 
+    def contextMenuEvent(self, event):
+        if self.selectedItems():
+
+            self.menu.popup(QtGui.QCursor.pos())
+
     def config_table(self):
 
         def value_update(attr_config, *args):
@@ -214,6 +287,7 @@ class ChannelTable(QtWidgets.QTableWidget):
             if self.trigger_value_update:
                 cmds.setAttr(attr_config["fullName"], args[0])
 
+                # refresh button color while value update
                 for i in xrange(self.rowCount()):
                     item = self.item(i, 0)
                     attr = item.data(QtCore.Qt.UserRole)
@@ -289,16 +363,7 @@ class ChannelTable(QtWidgets.QTableWidget):
             label_item.setToolTip(at["fullName"])
             label_item.setFlags(label_item.flags() ^ QtCore.Qt.ItemIsEditable)
 
-            # print label_item.data(QtCore.Qt.UserRole)
-
             key_button = create_key_button(at)
-
-            # TODO:
-            # Crear funciones para keyframes.
-            #   -Key
-            #   -Remove key
-            # in update channel values tiene que hacer check de si hay animacion
-            # en los botones y poner el color
 
             self.insertRow(i)
             self.setRowHeight(i, 17)
@@ -340,8 +405,6 @@ class ChannelTable(QtWidgets.QTableWidget):
                 ch_item.setValue(val)
             elif attr["type"] == "bool":
                 if val:
-                    # print ch_item.findChildren(QtWidgets.QCheckBox)
-                    # layout = ch_item.findChildren(QtWidgets.QHBoxLayout)[0]
                     cbox = ch_item.findChildren(QtWidgets.QCheckBox)[0]
                     cbox.setChecked(True)
             elif attr["type"] == "enum":
@@ -352,3 +415,64 @@ class ChannelTable(QtWidgets.QTableWidget):
             refresh_key_button_color(button_item, attr["fullName"])
 
         self.trigger_value_update = True
+
+
+##################
+# set range dialog
+##################
+
+
+class SetRangeDialog(QtWidgets.QDialog):
+    """
+    Set range dialog
+    """
+
+    def __init__(self, init_range=None, parent=None):
+        super(SetRangeDialog, self).__init__(parent)
+
+        self.setWindowTitle("Set Range")
+        flags = self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint
+        self.setWindowFlags(flags)
+
+        self.init_range = init_range
+
+        self.create_widgets()
+        self.create_layout()
+        self.create_connections()
+
+    def create_widgets(self):
+        self.min_spinbox = QtWidgets.QDoubleSpinBox()
+        self.min_spinbox.setFixedWidth(80)
+        self.min_spinbox.setMinimum(-1000000)
+        self.min_spinbox.setMaximum(1000000)
+        self.max_spinbox = QtWidgets.QDoubleSpinBox()
+        self.max_spinbox.setMinimum(-1000000)
+        self.max_spinbox.setMaximum(1000000)
+        self.max_spinbox.setFixedWidth(80)
+        if self.init_range:
+            self.min_spinbox.setValue(self.init_range[0])
+            self.max_spinbox.setValue(self.init_range[1])
+
+        self.ok_btn = QtWidgets.QPushButton("OK")
+
+    def create_layout(self):
+        wdg_layout = QtWidgets.QHBoxLayout()
+        wdg_layout.addWidget(QtWidgets.QLabel("Min: "))
+        wdg_layout.addWidget(self.min_spinbox)
+        wdg_layout.addWidget(QtWidgets.QLabel("Max: "))
+        wdg_layout.addWidget(self.max_spinbox)
+
+        btn_layout = QtWidgets.QHBoxLayout()
+        btn_layout.addStretch()
+        btn_layout.addWidget(self.ok_btn)
+
+        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout.addLayout(wdg_layout)
+        main_layout.addLayout(btn_layout)
+
+    def create_connections(self):
+        self.ok_btn.clicked.connect(self.accept)
+
+    def get_range(self):
+        return([self.min_spinbox.value(),
+                self.max_spinbox.value()])

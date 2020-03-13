@@ -250,9 +250,10 @@ class ChannelTable(QtWidgets.QTableWidget):
                                                           self)
                         result = set_range_dialog.exec_()
 
-                        if result == QtWidgets.QDialog.Accepted:
-                            new_range = set_range_dialog.get_range()
-                            ch_item.setRange(new_range[0], new_range[1])
+                        if result != QtWidgets.QDialog.Accepted:
+                            return
+                    new_range = set_range_dialog.get_range()
+                    ch_item.setRange(new_range[0], new_range[1])
 
     def setup_table(self):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,

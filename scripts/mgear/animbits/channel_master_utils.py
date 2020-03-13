@@ -191,3 +191,21 @@ def next_keyframe(attr):
 
 def previous_keyframe(attr):
     _go_to_keyframe(attr, which="previous")
+
+
+def value_equal_keyvalue(attr, current_time=False):
+    """Compare the animation value and the current value of a given attribute
+
+    Args:
+        attr (str): the attribute fullName
+
+    Returns:
+        bool: Return true is current value and animation value are the same
+    """
+    anim_val = get_anim_value_at_current_frame(attr)
+    if current_time:
+        val = cmds.getAttr(attr, time=current_time)
+    else:
+        val = cmds.getAttr(attr)
+    if anim_val == val:
+        return True

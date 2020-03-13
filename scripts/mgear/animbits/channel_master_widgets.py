@@ -87,24 +87,6 @@ def create_button(size=17,
     return button
 
 
-def value_equal_keyvalue(attr, current_time=False):
-    """Compare the animation value and the current value of a given attribute
-
-    Args:
-        attr (str): the attribute fullName
-
-    Returns:
-        bool: Return true is current value and animation value are the same
-    """
-    anim_val = cmu.get_anim_value_at_current_frame(attr)
-    if current_time:
-        val = cmds.getAttr(attr, time=current_time)
-    else:
-        val = cmds.getAttr(attr)
-    if anim_val == val:
-        return True
-
-
 def refresh_key_button_color(button, attr, current_time=False):
     """refresh the key button color based on the animation of a given attribute
 
@@ -113,7 +95,7 @@ def refresh_key_button_color(button, attr, current_time=False):
         attr (str): the attribute fullName
     """
     if cmu.channel_has_animation(attr):
-        if value_equal_keyvalue(attr, current_time):
+        if cmu.value_equal_keyvalue(attr, current_time):
             if cmu.current_frame_has_key(attr):
                 button.setStyleSheet(
                     'QPushButton {background-color: #ce5846;}')
@@ -170,7 +152,7 @@ def create_key_button(item_data):
     button.customContextMenuRequested.connect(context_menu)
 
     def button_clicked():
-        if cmu.current_frame_has_key(attr) and value_equal_keyvalue(attr):
+        if cmu.current_frame_has_key(attr) and cmu.value_equal_keyvalue(attr):
             cmu.remove_key(attr)
 
         else:
@@ -244,7 +226,6 @@ class ChannelTable(QtWidgets.QTableWidget):
             for itm in items:
                 attr_config = itm.data(QtCore.Qt.UserRole)
                 cmu.reset_attribute(attr_config)
-
 
     def clear_color_slot(self):
         items = self.selectedItems()

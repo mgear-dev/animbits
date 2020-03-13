@@ -253,6 +253,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.refresh_button.clicked.connect(self.update_main_table)
 
+        self.key_all_button.clicked.connect(self.key_all)
+
     def get_current_table(self):
         """get the active channel table for active tab
 
@@ -296,6 +298,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if table:
             table.refresh_channels_values(current_time)
 
+    # actions
     def action_display_fullname(self):
         """Toggle channel name  from nice name to full name
         """
@@ -321,12 +324,35 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         table = self.get_current_table()
         table.sortItems(0, order=QtCore.Qt.AscendingOrder)
 
+    # callback slots
     def selection_change(self, *args):
         if not self.lock_button.isChecked():
             self.update_main_table()
 
     def time_changed(self, *args):
         self.refresh_channels_values(current_time=pm.currentTime())
+
+    # Keyframe
+
+    def key_all(self, *args):
+        table = self.get_current_table()
+        not_keyed = []
+        keyed = []
+        for i in xrange(table.rowCount()):
+            item = table.item(i, 0)
+            attr = item.data(QtCore.Qt.UserRole)["fullName"]
+            if cmu.current_frame_has_key(attr) \
+                and cmu.value_equal_keyvalue(attr):
+                keyed.append(attr)
+            else:
+                not_keyed.append(attr)
+
+        if not_keyed:
+            cmu.set_key(not_keyed)
+        else:
+            cmu.remove_key(keyed)
+
+        self.refresh_channels_values()
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 import maya.cmds as cmds
 import pymel.core as pm
 
+from mgear.core import attribute
+
 
 ATTR_SLIDER_TYPES = ["long", "float", "double", "doubleLinear", "doubleAngle"]
 DEFAULT_RANGE = 1000
@@ -95,9 +97,21 @@ def get_table_config_from_selection():
     return attrs_config
 
 
+def reset_attribute(attr_config):
+    """Reset the value of a given attribute for the attribute configuration
+
+    Args:
+        attr_config (dict): Attribute configuration
+    """
+    obj = pm.PyNode(attr_config["ctl"])
+    attr = attr_config["longName"]
+
+    attribute.reset_selected_channels_value(objects=[obj], attributes=[attr])
+
 ################
 # Keyframe utils
 ################
+
 
 def current_frame_has_key(attr):
     """Check if the attribute has keyframe in the current frame
@@ -165,12 +179,15 @@ def remove_animation(attr):
     """
     pm.cutKey(attr, clear=True)
 
+
 def _go_to_keyframe(attr, which):
     frame = cmds.findKeyframe(attr, which=which)
     cmds.currentTime(frame, e=True)
 
+
 def next_keyframe(attr):
     _go_to_keyframe(attr, which="next")
+
 
 def previous_keyframe(attr):
     _go_to_keyframe(attr, which="previous")

@@ -215,6 +215,12 @@ class ChannelTable(QtWidgets.QTableWidget):
         set_range_action.setIcon(pyqt.get_icon("sliders"))
         set_range_action.triggered.connect(self.set_range_slot)
         self.menu.addAction(set_range_action)
+        self.menu.addSeparator()
+
+        reset_value_action = QtWidgets.QAction('Reset Value to Default', self)
+        reset_value_action.setIcon(pyqt.get_icon("rewind"))
+        reset_value_action.triggered.connect(self.reset_value_slot)
+        self.menu.addAction(reset_value_action)
 
     def set_color_slot(self):
         items = self.selectedItems()
@@ -228,6 +234,14 @@ class ChannelTable(QtWidgets.QTableWidget):
 
             for itm in items:
                 itm.setBackground(color)
+
+    def reset_value_slot(self):
+        items = self.selectedItems()
+        if items:
+            for itm in items:
+                attr_config = itm.data(QtCore.Qt.UserRole)
+                cmu.reset_attribute(attr_config)
+
 
     def clear_color_slot(self):
         items = self.selectedItems()
@@ -245,7 +259,6 @@ class ChannelTable(QtWidgets.QTableWidget):
                     ch_item = self.cellWidget(itm.row(), 2)
                     if not init_range:
                         init_range = ch_item.getRange()
-                        print init_range
                         set_range_dialog = SetRangeDialog(init_range,
                                                           self)
                         result = set_range_dialog.exec_()

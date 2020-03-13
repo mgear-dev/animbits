@@ -87,7 +87,7 @@ def create_button(size=17,
     return button
 
 
-def value_equal_keyvalue(attr):
+def value_equal_keyvalue(attr, current_time=False):
     """Compare the animation value and the current value of a given attribute
 
     Args:
@@ -97,12 +97,15 @@ def value_equal_keyvalue(attr):
         bool: Return true is current value and animation value are the same
     """
     anim_val = cmu.get_anim_value_at_current_frame(attr)
-    val = cmds.getAttr(attr, time=pm.currentTime())
+    if current_time:
+        val = cmds.getAttr(attr, time=current_time)
+    else:
+        val = cmds.getAttr(attr)
     if anim_val == val:
         return True
 
 
-def refresh_key_button_color(button, attr):
+def refresh_key_button_color(button, attr, current_time=False):
     """refresh the key button color based on the animation of a given attribute
 
     Args:
@@ -110,7 +113,7 @@ def refresh_key_button_color(button, attr):
         attr (str): the attribute fullName
     """
     if cmu.channel_has_animation(attr):
-        if value_equal_keyvalue(attr):
+        if value_equal_keyvalue(attr, current_time):
             if cmu.current_frame_has_key(attr):
                 button.setStyleSheet(
                     'QPushButton {background-color: #ce5846;}')
@@ -406,7 +409,7 @@ class ChannelTable(QtWidgets.QTableWidget):
         self.attrs_config = cmu.get_table_config_from_selection()
         self.config_table()
 
-    def refresh_channels_values(self):
+    def refresh_channels_values(self, current_time=False):
         """refresh the channel values of the table
         """
         self.trigger_value_update = False
@@ -414,7 +417,13 @@ class ChannelTable(QtWidgets.QTableWidget):
             ch_item = self.cellWidget(i, 2)
             item = self.item(i, 0)
             attr = item.data(QtCore.Qt.UserRole)
-            val = cmds.getAttr(attr["fullName"], time=pm.currentTime())
+            if current_time:
+                # Note: we can not set time to False because looks like
+                # having this flag force the evaluation on the animation
+                # curve and not in the current attribute value
+                val = cmds.getAttr(attr["fullName"], time=current_time)
+            else:
+                val = cmds.getAttr(attr["fullName"])
             if attr["type"] in cmu.ATTR_SLIDER_TYPES:
                 ch_item.setValue(val)
             elif attr["type"] == "bool":
@@ -426,7 +435,9 @@ class ChannelTable(QtWidgets.QTableWidget):
 
             # refresh button color
             button_item = self.cellWidget(i, 1)
-            refresh_key_button_color(button_item, attr["fullName"])
+            refresh_key_button_color(button_item,
+                                     attr["fullName"],
+                                     current_time)
 
         self.trigger_value_update = True
 

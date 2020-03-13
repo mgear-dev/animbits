@@ -289,12 +289,12 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         self.search_lineEdit.setText("")
 
-    def refresh_channels_values(self):
+    def refresh_channels_values(self, current_time=False):
         """Refresh the channel values of the current table
         """
         table = self.get_current_table()
         if table:
-            table.refresh_channels_values()
+            table.refresh_channels_values(current_time)
 
     def action_display_fullname(self):
         """Toggle channel name  from nice name to full name
@@ -326,7 +326,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.update_main_table()
 
     def time_changed(self, *args):
-        self.refresh_channels_values()
+        self.refresh_channels_values(current_time=pm.currentTime())
 
 
 if __name__ == "__main__":

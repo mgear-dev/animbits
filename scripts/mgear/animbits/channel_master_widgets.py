@@ -97,7 +97,7 @@ def value_equal_keyvalue(attr):
         bool: Return true is current value and animation value are the same
     """
     anim_val = cmu.get_anim_value_at_current_frame(attr)
-    val = cmds.getAttr(attr)
+    val = cmds.getAttr(attr, time=pm.currentTime())
     if anim_val == val:
         return True
 
@@ -414,7 +414,7 @@ class ChannelTable(QtWidgets.QTableWidget):
             ch_item = self.cellWidget(i, 2)
             item = self.item(i, 0)
             attr = item.data(QtCore.Qt.UserRole)
-            val = cmds.getAttr(attr["fullName"])
+            val = cmds.getAttr(attr["fullName"], time=pm.currentTime())
             if attr["type"] in cmu.ATTR_SLIDER_TYPES:
                 ch_item.setValue(val)
             elif attr["type"] == "bool":

@@ -1,6 +1,5 @@
 import maya.cmds as cmds
 import pymel.core as pm
-from mgear.core import pyflow_widgets
 from mgear.core import pyqt
 from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore

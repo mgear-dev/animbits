@@ -69,6 +69,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def create_actions(self):
         # file actions
+        self.file_new_node_action = QtWidgets.QAction("New Node", self)
+        self.file_new_node_action.setIcon(pyqt.get_icon("plus-square"))
         self.file_export_all_action = QtWidgets.QAction("Export All Tabs",
                                                         self)
         self.file_export_all_action.setIcon(pyqt.get_icon("log-out"))
@@ -119,6 +121,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # Menu bar
         self.menu_bar = QtWidgets.QMenuBar()
         self.file_menu = self.menu_bar.addMenu("File")
+        self.file_menu.addAction(self.file_new_node_action)
+        self.file_menu.addSeparator()
         self.file_menu.addAction(self.file_export_all_action)
         self.file_menu.addAction(self.file_export_current_action)
         self.file_menu.addAction(self.file_import_action)
@@ -166,6 +170,16 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             size=17, icon="plus", toolTip="Add Selected Channels")
         self.remove_channel_button = cmw.create_button(
             size=17, icon="minus", toolTip="Remove Selected Channels")
+
+        # node list widgets
+        self.node_list_combobox = QtWidgets.QComboBox()
+        self.node_list_combobox.setMaximumHeight(17)
+        self.refresh_node_list_button = cmw.create_button(
+            size=17, icon="list", toolTip="Refresh Node List")
+        self.new_node_list_button = cmw.create_button(
+            size=17,
+            icon="plus-square",
+            toolTip="Create New Channel Master Node")
 
         # search widgets
         self.search_label = QtWidgets.QLabel("Filter Channel: ")
@@ -218,6 +232,12 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         channel_buttons_layout.addWidget(self.lock_button)
         channel_buttons_layout.addWidget(self.refresh_button)
 
+        # node list layout
+        node_list_layout = QtWidgets.QHBoxLayout()
+        node_list_layout.addWidget(self.node_list_combobox)
+        node_list_layout.addWidget(self.refresh_node_list_button)
+        node_list_layout.addWidget(self.new_node_list_button)
+
         # serch line layout
         search_line_layout = QtWidgets.QHBoxLayout()
         self.search_lineEdit.setStyleSheet(line_edit_style)
@@ -228,10 +248,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # Buttons layout
         buttons_layout = QtWidgets.QHBoxLayout()
         buttons_layout.addLayout(key_buttons_layout)
-        # buttons_layout.addLayout(search_line_layout)
         buttons_layout.addStretch()
         buttons_layout.addLayout(channel_buttons_layout)
 
+        main_layout.addLayout(node_list_layout)
         main_layout.addLayout(search_line_layout)
         main_layout.addLayout(buttons_layout)
         main_layout.addWidget(self.tab_widget)

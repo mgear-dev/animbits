@@ -34,6 +34,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         elif cmds.about(macOS=True):
             self.setWindowFlags(QtCore.Qt.Tool)
 
+        self.values_buffer = []
+
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, 1)
 
         self.create_actions()
@@ -254,6 +256,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.refresh_button.clicked.connect(self.update_main_table)
 
         self.key_all_button.clicked.connect(self.key_all)
+        self.key_copy_button.clicked.connect(self.copy_all_values)
+        self.key_paste_button.clicked.connect(self.paste_all_values)
 
     def get_current_table(self):
         """get the active channel table for active tab
@@ -271,6 +275,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def update_main_table(self):
         # TODO: add confirmation box if lock button is pressed
         self.main_table.update_table()
+        # Clean values buffer
+        self.values_buffer = []
 
     def search_channels(self):
         """Filter the visible rows in the channel table.
@@ -342,7 +348,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             item = table.item(i, 0)
             attr = item.data(QtCore.Qt.UserRole)["fullName"]
             if cmu.current_frame_has_key(attr) \
-                and cmu.value_equal_keyvalue(attr):
+                    and cmu.value_equal_keyvalue(attr):
                 keyed.append(attr)
             else:
                 not_keyed.append(attr)
@@ -351,6 +357,39 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             cmu.set_key(not_keyed)
         else:
             cmu.remove_key(keyed)
+
+        self.refresh_channels_values()
+
+    def copy_all_values(self, *args):
+        """Copy all attribute values from curretn channel table
+
+        Args:
+            *args: Description
+        """
+        table = self.get_current_table()
+        self.values_buffer = []
+        for i in xrange(table.rowCount()):
+            item = table.item(i, 0)
+            attr = item.data(QtCore.Qt.UserRole)
+            self.values_buffer.append(cmds.getAttr(attr["fullName"]))
+
+    def paste_all_values(self, *args):
+        """Paste and key values stored in buffer
+
+        Args:
+            *args: Description
+
+        Returns:
+            None: Return none if no values stored in buffer
+        """
+        if not self.values_buffer:
+            return
+        table = self.get_current_table()
+        for i in xrange(table.rowCount()):
+            item = table.item(i, 0)
+            attr = item.data(QtCore.Qt.UserRole)
+            cmds.setAttr(attr["fullName"], self.values_buffer[i])
+            cmu.set_key(attr["fullName"])
 
         self.refresh_channels_values()
 

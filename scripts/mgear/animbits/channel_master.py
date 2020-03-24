@@ -12,6 +12,7 @@ from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 from . import channel_master_utils as cmu
 from . import channel_master_widgets as cmw
+from . import channel_master_node as cmn
 
 
 class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
@@ -176,10 +177,11 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.node_list_combobox.setMaximumHeight(17)
         self.refresh_node_list_button = cmw.create_button(
             size=17, icon="list", toolTip="Refresh Node List")
-        self.new_node_list_button = cmw.create_button(
+        self.new_node_button = cmw.create_button(
             size=17,
             icon="plus-square",
             toolTip="Create New Channel Master Node")
+        self.refresh_node_list()
 
         # search widgets
         self.search_label = QtWidgets.QLabel("Filter Channel: ")
@@ -236,7 +238,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         node_list_layout = QtWidgets.QHBoxLayout()
         node_list_layout.addWidget(self.node_list_combobox)
         node_list_layout.addWidget(self.refresh_node_list_button)
-        node_list_layout.addWidget(self.new_node_list_button)
+        node_list_layout.addWidget(self.new_node_button)
 
         # serch line layout
         search_line_layout = QtWidgets.QHBoxLayout()
@@ -261,6 +263,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def create_connections(self):
         # Actions
+        self.file_new_node_action.triggered.connect(
+            self.create_new_node)
+
         self.display_fullname_action.triggered.connect(
             self.action_display_fullname)
         self.display_order_default_action.triggered.connect(
@@ -277,6 +282,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.key_all_button.clicked.connect(self.key_all)
         self.key_copy_button.clicked.connect(self.copy_all_values)
         self.key_paste_button.clicked.connect(self.paste_all_values)
+
+        self.refresh_node_list_button.clicked.connect(self.refresh_node_list)
+        self.new_node_button.clicked.connect(self.create_new_node)
 
     def get_current_table(self):
         """get the active channel table for active tab
@@ -411,6 +419,40 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             cmu.set_key(attr["fullName"])
 
         self.refresh_channels_values()
+
+    def refresh_node_list(self):
+        """Refresh the channel master node list
+        """
+        nodes = cmn.list_channel_master_nodes()
+        nodes.reverse()
+        self.node_list_combobox.clear()
+        self.node_list_combobox.addItems(nodes)
+
+    def create_new_node(self):
+        """Create a new node
+
+        Returns:
+            bool: return false if the dialog is not accepted
+        """
+        sel = pm.selected()
+        new_node_dialog = cmw.CreateChannelMasterNodeDialog(self)
+        result = new_node_dialog.exec_()
+        if result != QtWidgets.QDialog.Accepted:
+            return
+        name = new_node_dialog.get_name()
+        if name:
+            node = cmn.create_channel_master_node(name)
+            self.refresh_node_list()
+            for i in xrange(self.node_list_combobox.count()):
+                if self.node_list_combobox.itemText(i) == node:
+                    self.node_list_combobox.setCurrentIndex(i)
+                    break
+            pm.select(sel)
+
+        else:
+            pm.displayWarning("No valid node name!")
+
+
 
 
 if __name__ == "__main__":

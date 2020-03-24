@@ -482,3 +482,60 @@ class SetRangeDialog(QtWidgets.QDialog):
     def get_range(self):
         return([self.min_spinbox.value(),
                 self.max_spinbox.value()])
+
+
+##################
+# create Node dialog
+##################
+
+
+class CreateChannelMasterNodeDialog(QtWidgets.QDialog):
+    """
+    Create Channel Master nore dialog
+    """
+
+    def __init__(self, parent=None):
+        super(CreateChannelMasterNodeDialog, self).__init__(parent)
+
+        self.setWindowTitle("Create Channel Master Node")
+        flags = self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint
+        self.setWindowFlags(flags)
+
+        self.create_widgets()
+        self.create_layout()
+        self.create_connections()
+
+        self.name_lineEdit.installEventFilter(self)
+
+    def create_widgets(self):
+        self.name_label = QtWidgets.QLabel("Name: ")
+        self.name_lineEdit = QtWidgets.QLineEdit()
+
+        self.ok_btn = QtWidgets.QPushButton("OK")
+
+    def create_layout(self):
+        wdg_layout = QtWidgets.QHBoxLayout()
+        wdg_layout.addWidget(self.name_label)
+        wdg_layout.addWidget(self.name_lineEdit)
+
+        btn_layout = QtWidgets.QHBoxLayout()
+        btn_layout.addStretch()
+        btn_layout.addWidget(self.ok_btn)
+
+        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout.addLayout(wdg_layout)
+        main_layout.addLayout(btn_layout)
+
+    def create_connections(self):
+        self.ok_btn.clicked.connect(self.accept)
+
+    def get_name(self):
+        return self.name_lineEdit.text()
+
+    def eventFilter(self, obj, event):
+        if (obj == self.name_lineEdit
+                and event.type() == QtCore.QEvent.KeyPress):
+            key = event.key()
+            if key == QtCore.Qt.Key_Return or key == QtCore.Qt.Key_Enter:
+                self.accept()
+                return True

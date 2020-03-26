@@ -117,6 +117,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.tab_del_action.setIcon(pyqt.get_icon("trash-2"))
         self.tab_dup_action = QtWidgets.QAction("Duplicate Tab", self)
         self.tab_dup_action.setIcon(pyqt.get_icon("copy"))
+        self.tab_rename_action = QtWidgets.QAction("Rename Tab", self)
+        # self.tab_rename_action.setIcon(pyqt.get_icon("copy"))
 
     def create_widgets(self):
         # Menu bar
@@ -148,6 +150,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.tab_menu = self.menu_bar.addMenu("Tab")
         self.tab_menu.addAction(self.tab_new_action)
         self.tab_menu.addAction(self.tab_dup_action)
+        self.tab_menu.addAction(self.tab_rename_action)
         self.tab_menu.addSeparator()
         self.tab_menu.addAction(self.tab_del_action)
 
@@ -262,16 +265,23 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.tab_widget.addTab(self.main_table, "Main")
 
     def create_connections(self):
-        # Actions
+        #  actions File
         self.file_new_node_action.triggered.connect(
             self.create_new_node)
 
+        # actions display
         self.display_fullname_action.triggered.connect(
             self.action_display_fullname)
         self.display_order_default_action.triggered.connect(
             self.action_default_order)
         self.display_order_alphabetical_action.triggered.connect(
             self.action_alphabetical_order)
+
+        # action tab
+        self.tab_new_action.triggered.connect(self.add_tab)
+        self.tab_del_action.triggered.connect(self.delete_tab)
+        self.tab_dup_action.triggered.connect(self.duplicate_tab)
+        self.tab_rename_action.triggered.connect(self.rename_tab)
 
         # Buttons
         self.search_lineEdit.textChanged.connect(self.search_channels)
@@ -285,6 +295,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.refresh_node_list_button.clicked.connect(self.refresh_node_list)
         self.new_node_button.clicked.connect(self.create_new_node)
+
+        self.add_tab_button.clicked.connect(self.add_tab)
 
     def get_current_table(self):
         """get the active channel table for active tab
@@ -307,7 +319,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def search_channels(self):
         """Filter the visible rows in the channel table.
-        NOTE: ideally this should be implemented with a model/view patter
+        NOTE: ideally this should be implemented with a model/view pattern
         using QTableView
         """
         search_name = self.search_lineEdit.text()
@@ -336,16 +348,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """Toggle channel name  from nice name to full name
         """
         table = self.get_current_table()
-        if self.display_fullname_action.isChecked():
-            for i in xrange(table.rowCount()):
-                item = table.item(i, 0)
-                txt = item.data(QtCore.Qt.UserRole)["fullName"] + "  "
-                item.setText(txt)
-        else:
-            for i in xrange(table.rowCount()):
-                item = table.item(i, 0)
-                txt = item.data(QtCore.Qt.UserRole)["niceName"] + "  "
-                item.setText(txt)
+        for i in xrange(table.rowCount()):
+            table.set_channel_fullname(
+                i, self.display_fullname_action.isChecked())
 
     def action_default_order(self):
 
@@ -452,7 +457,84 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         else:
             pm.displayWarning("No valid node name!")
 
+    def add_tab(self):
+        """Add new tab to the channel master
 
+        Returns:
+            bood: False if not accepted
+        """
+        new_tab_dialog = cmw.CreateChannelMasterTabDialog(self)
+        result = new_tab_dialog.exec_()
+        if result != QtWidgets.QDialog.Accepted:
+            return
+        name = new_tab_dialog.get_name()
+        if name:
+            name = self.check_tab_name(name)
+            new_table = cmw.ChannelTable(None, self)
+            self.tab_widget.addTab(new_table, name)
+            self.tab_widget.setCurrentIndex(self.tab_widget.count() - 1)
+        else:
+            pm.displayWarning("No valid tab name!")
+
+
+    def duplicate_tab(self):
+        pass
+
+    def delete_tab(self):
+        cur_idx = self.tab_widget.currentIndex()
+        if cur_idx >= 1:
+            button_pressed = QtWidgets.QMessageBox.question(
+                self, "Delete Tab", "Confirm Delete Tab?")
+            if button_pressed == QtWidgets.QMessageBox.Yes:
+                page = self.tab_widget.widget(cur_idx)
+                self.tab_widget.removeTab(cur_idx)
+                page.deleteLater()
+        else:
+            pm.displayWarning("Main Tab Can't be deleted!")
+
+    def check_tab_name(self, name):
+        """Check if the tab name is unique and add an index if not
+
+        Args:
+            name (str): Name to check
+
+        Returns:
+            str: unique name after check
+        """
+        init_name = name
+        names = []
+        for i in xrange(self.tab_widget.count()):
+            names.append(self.tab_widget.tabText(i))
+        i = 1
+        while name in names:
+            name = init_name + str(i)
+            i += 1
+
+        return name
+
+    def rename_tab(self):
+        cur_idx = self.tab_widget.currentIndex()
+        if cur_idx >= 1:
+            new_tab_dialog = cmw.CreateChannelMasterTabDialog(self)
+            result = new_tab_dialog.exec_()
+            if result != QtWidgets.QDialog.Accepted:
+                return
+            name = new_tab_dialog.get_name()
+            if name:
+                name = self.check_tab_name(name)
+                self.tab_widget.setTabText(cur_idx, name)
+
+            else:
+                pm.displayWarning("No valid tab name!")
+        else:
+            pm.displayWarning("Main Tab Can't be renamed!")
+
+
+    def add_channels_to_current_tab(self):
+        pass
+
+    def remove_selected_channels(self):
+        pass
 
 
 if __name__ == "__main__":

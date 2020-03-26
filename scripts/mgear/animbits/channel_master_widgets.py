@@ -172,7 +172,7 @@ def create_key_button(item_data):
 
 class ChannelTable(QtWidgets.QTableWidget):
 
-    def __init__(self, attrs_config, parent=None):
+    def __init__(self, attrs_config=None, parent=None):
         super(ChannelTable, self).__init__(parent)
         self.attrs_config = attrs_config
         self.trigger_value_update = True
@@ -422,6 +422,37 @@ class ChannelTable(QtWidgets.QTableWidget):
 
         self.trigger_value_update = True
 
+    def get_channel_config(self, idx):
+        item = self.item(idx, 0)
+        config_data = item.data(QtCore.Qt.UserRole)
+        return config_data
+
+    def get_table_config(self):
+        pass
+
+    def set_channel_config(self, config):
+        pass
+
+    def set_table_config(self, config):
+        pass
+
+
+    def set_channel_fullname(self, idx, fullName=True):
+        """Set the channel Full Name
+
+        Args:
+            idx (int): Channel index
+            fullName (bool, optional): If true will set the fullname
+        """
+        if fullName:
+            key = "fullName"
+        else:
+            key = "niceName"
+        item = self.item(idx, 0)
+        txt = item.data(QtCore.Qt.UserRole)[key] + "  "
+        item.setText(txt)
+
+
 
 ##################
 # set range dialog
@@ -489,15 +520,14 @@ class SetRangeDialog(QtWidgets.QDialog):
 ##################
 
 
-class CreateChannelMasterNodeDialog(QtWidgets.QDialog):
+class NameDialog(QtWidgets.QDialog):
     """
-    Create Channel Master nore dialog
+    Name Dialog
     """
 
     def __init__(self, parent=None):
-        super(CreateChannelMasterNodeDialog, self).__init__(parent)
+        super(NameDialog, self).__init__(parent)
 
-        self.setWindowTitle("Create Channel Master Node")
         flags = self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint
         self.setWindowFlags(flags)
 
@@ -539,3 +569,25 @@ class CreateChannelMasterNodeDialog(QtWidgets.QDialog):
             if key == QtCore.Qt.Key_Return or key == QtCore.Qt.Key_Enter:
                 self.accept()
                 return True
+
+
+class CreateChannelMasterNodeDialog(NameDialog):
+    """
+    Create Channel Master nore dialog
+    """
+
+    def __init__(self, parent=None):
+        super(CreateChannelMasterNodeDialog, self).__init__(parent)
+
+        self.setWindowTitle("Node Name")
+
+
+class CreateChannelMasterTabDialog(NameDialog):
+    """
+    Create new tab dialog
+    """
+
+    def __init__(self, parent=None):
+        super(CreateChannelMasterTabDialog, self).__init__(parent)
+
+        self.setWindowTitle("Tab Name")

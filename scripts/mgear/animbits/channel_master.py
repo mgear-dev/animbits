@@ -457,29 +457,40 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         else:
             pm.displayWarning("No valid node name!")
 
-    def add_tab(self):
+    def add_tab(self, name=None):
         """Add new tab to the channel master
 
         Returns:
-            bood: False if not accepted
+            QTableWidget: the   table in the newtab
         """
         # TODO: node is mandatory to create custom channel tables
-        new_tab_dialog = cmw.CreateChannelMasterTabDialog(self)
-        result = new_tab_dialog.exec_()
-        if result != QtWidgets.QDialog.Accepted:
-            return
-        name = new_tab_dialog.get_name()
+        if not name:
+            new_tab_dialog = cmw.CreateChannelMasterTabDialog(self)
+            result = new_tab_dialog.exec_()
+            if result != QtWidgets.QDialog.Accepted:
+                return
+            name = new_tab_dialog.get_name()
+
         if name:
             name = self.check_tab_name(name)
             new_table = cmw.ChannelTable(None, self)
             self.tab_widget.addTab(new_table, name)
             self.tab_widget.setCurrentIndex(self.tab_widget.count() - 1)
+            return new_table
         else:
             pm.displayWarning("No valid tab name!")
 
 
     def duplicate_tab(self):
-        pass
+        table = self.get_current_table()
+        cur_idx = self.tab_widget.currentIndex()
+        name  = self.tab_widget.tabText(cur_idx) + "_copy"
+        name = self.check_tab_name(name)
+        if table:
+            config = table.get_table_config()
+            new_table = self.add_tab(name)
+            new_table.set_table_config(config)
+
 
     def delete_tab(self):
         cur_idx = self.tab_widget.currentIndex()

@@ -428,7 +428,7 @@ class ChannelTable(QtWidgets.QTableWidget):
 
     def get_table_config(self):
         config_data = cmu.init_table_config_data()
-        for i in self.count():
+        for i in xrange(self.rowCount()):
             chan_data = self.get_channel_config(i)
             fullname = chan_data["fullName"]
             config_data["channels"].append(fullname)
@@ -442,7 +442,8 @@ class ChannelTable(QtWidgets.QTableWidget):
         pass
 
     def set_table_config(self, config):
-        pass
+        self.config = config
+        self.update_table()
 
     def set_channel_fullname(self, idx, fullName=True):
         """Set the channel Full Name

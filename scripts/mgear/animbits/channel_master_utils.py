@@ -10,6 +10,31 @@ DEFAULT_RANGE = 1000
 
 # TODO: filter channel by color. By right click menu in a channel with color
 
+def init_table_config_data():
+    """Initialize the dictionary to store the channel master table data
+
+    Items are the channels or attributes fullname in a list
+    items_data is a dictionary with each channel configuration, the keys is the
+    fullName
+
+    Returns:
+        dict: configuration dictionary
+    """
+    config_data = {}
+    config_data["channels"] = []
+    config_data["channels_data"] = {}
+
+    return config_data
+
+def init_channel_master_config_data():
+    """Initialize the dictionary to store channel master tabs configuration
+    """
+    config_data = {}
+    config_data["tabs"] = []
+    config_data["tabs_data"] = {}
+
+    return config_data
+
 def get_keyable_attribute(node):
     """Get keyable attributes from node
 
@@ -70,15 +95,18 @@ def get_attributes_config(node):
     Returns:
         dict: All keyable attributes configuration
     """
-    attrs_config = {}
+    # attrs_config = {}
     keyable_attrs = get_keyable_attribute(node)
+    config_data = init_table_config_data()
     if keyable_attrs:
-        attrs_config["_attrs"] = keyable_attrs
-        for attr in attrs_config["_attrs"]:
+        # attrs_config["_attrs"] = keyable_attrs
+        for attr in keyable_attrs:
             config = get_single_attribute_config(node, attr)
-            attrs_config[attr] = config
+            # attrs_config[attr] = config
+            config_data["channels"].append(config["fullName"])
+            config_data["channels_data"][config["fullName"]] = config
 
-    return attrs_config
+    return config_data
 
 
 def refresh_channel_value():
@@ -89,11 +117,10 @@ def refresh_channel_value():
 
 def get_table_config_from_selection():
     oSel = pm.selected()
-    attrs_config = {}
+    attrs_config = None
     if oSel:
         ctl = oSel[-1].name()
         attrs_config = get_attributes_config(ctl)
-
     return attrs_config
 
 

@@ -6,6 +6,7 @@ from mgear.core import attribute
 
 __TAG__ = "_isChannelMasterNode"
 
+# TODO: Node should store the current active tab
 
 def list_channel_master_nodes():
     """return a list of channel master nodes in the scene

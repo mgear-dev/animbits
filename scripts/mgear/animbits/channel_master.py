@@ -463,6 +463,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         Returns:
             bood: False if not accepted
         """
+        # TODO: node is mandatory to create custom channel tables
         new_tab_dialog = cmw.CreateChannelMasterTabDialog(self)
         result = new_tab_dialog.exec_()
         if result != QtWidgets.QDialog.Accepted:
@@ -513,6 +514,11 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         return name
 
     def rename_tab(self):
+        """Rename the tab text
+
+        Returns:
+            bool: False if name not accepted
+        """
         cur_idx = self.tab_widget.currentIndex()
         if cur_idx >= 1:
             new_tab_dialog = cmw.CreateChannelMasterTabDialog(self)

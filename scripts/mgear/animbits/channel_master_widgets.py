@@ -172,9 +172,9 @@ def create_key_button(item_data):
 
 class ChannelTable(QtWidgets.QTableWidget):
 
-    def __init__(self, attrs_config=None, parent=None):
+    def __init__(self, chan_config=None, parent=None):
         super(ChannelTable, self).__init__(parent)
-        self.attrs_config = attrs_config
+        self.chan_config = chan_config
         self.trigger_value_update = True
         self.track_widgets = []
         self.create_menu()
@@ -301,14 +301,13 @@ class ChannelTable(QtWidgets.QTableWidget):
         def close_undo_chunk():
             cmds.undoInfo(closeChunk=True)
 
-        if not self.attrs_config:
+        if not self.chan_config:
             return
 
         i = 0
-        for k in self.attrs_config["_attrs"]:
-            at = self.attrs_config[k]
-            ctl = at["ctl"]
-            val = cmds.getAttr(ctl + "." + k)
+        for ch in self.chan_config["channels"]:
+            at = self.chan_config["channels_data"][ch]
+            val = cmds.getAttr(at["fullName"])
             if at["type"] in cmu.ATTR_SLIDER_TYPES:
                 if at["type"] == "long":
                     Type = "int"
@@ -387,7 +386,7 @@ class ChannelTable(QtWidgets.QTableWidget):
 
         self.track_widgets = []
 
-        self.attrs_config = cmu.get_table_config_from_selection()
+        self.chan_config = cmu.get_table_config_from_selection()
         self.config_table()
 
     def refresh_channels_values(self, current_time=False):
@@ -428,14 +427,22 @@ class ChannelTable(QtWidgets.QTableWidget):
         return config_data
 
     def get_table_config(self):
-        pass
+        config_data = cmu.init_table_config_data()
+        for i in self.count():
+            chan_data = self.get_channel_config(i)
+            fullname = chan_data["fullName"]
+            config_data["channels"].append(fullname)
+            config_data["channels_data"][fullname] = chan_data
+
+        return config_data
 
     def set_channel_config(self, config):
+        # NOTE: using full name to set data. Check the dict data when create
+        # for the first time.
         pass
 
     def set_table_config(self, config):
         pass
-
 
     def set_channel_fullname(self, idx, fullName=True):
         """Set the channel Full Name
@@ -451,7 +458,6 @@ class ChannelTable(QtWidgets.QTableWidget):
         item = self.item(idx, 0)
         txt = item.data(QtCore.Qt.UserRole)[key] + "  "
         item.setText(txt)
-
 
 
 ##################

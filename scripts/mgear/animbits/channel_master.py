@@ -170,20 +170,20 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             toggle_icon="lock",
             toolTip="Lock Channel Auto Refresh")
         self.refresh_button = cmw.create_button(
-            size=34, icon="refresh-cw", toolTip="Refresh Channel List")
+            size=17, icon="refresh-cw", toolTip="Refresh Channel List")
         self.add_channel_button = cmw.create_button(
-            size=17, icon="plus", toolTip="Add Selected Channels")
+            size=34, icon="plus", toolTip="Add Selected Channels")
         self.remove_channel_button = cmw.create_button(
-            size=17, icon="minus", toolTip="Remove Selected Channels")
+            size=34, icon="minus", toolTip="Remove Selected Channels")
 
         # node list widgets
         self.node_list_combobox = QtWidgets.QComboBox()
         self.node_list_combobox.setMaximumHeight(17)
         self.refresh_node_list_button = cmw.create_button(
-            size=17, icon="list", toolTip="Refresh Node List")
+            size=17, icon="refresh-cw", toolTip="Refresh Node List")
         self.new_node_button = cmw.create_button(
             size=17,
-            icon="plus-square",
+            icon="plus",
             toolTip="Create New Channel Master Node")
         self.refresh_node_list()
 
@@ -230,13 +230,17 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         key_buttons_layout.addWidget(self.key_paste_button)
 
         # channel listing buttons Layout
-        channel_add_remove_buttons_layout = QtWidgets.QVBoxLayout()
-        channel_add_remove_buttons_layout.addWidget(self.add_channel_button)
-        channel_add_remove_buttons_layout.addWidget(self.remove_channel_button)
-        channel_buttons_layout = QtWidgets.QHBoxLayout()
-        channel_buttons_layout.addLayout(channel_add_remove_buttons_layout)
+        channel_buttons_layout = QtWidgets.QVBoxLayout()
         channel_buttons_layout.addWidget(self.lock_button)
         channel_buttons_layout.addWidget(self.refresh_button)
+        channel_add_remove_buttons_layout = QtWidgets.QHBoxLayout()
+        channel_add_remove_buttons_layout.addWidget(self.add_channel_button)
+        channel_add_remove_buttons_layout.addWidget(self.remove_channel_button)
+        # channel_add_remove_buttons_layout.addLayout(channel_buttons_layout)
+        # channel_buttons_layout.addWidget(self.lock_button)
+        channel_add_remove_buttons_layout.addWidget(self.lock_button)
+        # channel_buttons_layout.addWidget(self.refresh_button)
+        # channel_add_remove_buttons_layout.addWidget(self.refresh_button)
 
         # node list layout
         node_list_layout = QtWidgets.QHBoxLayout()
@@ -244,7 +248,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         node_list_layout.addWidget(self.refresh_node_list_button)
         node_list_layout.addWidget(self.new_node_button)
 
-        # serch line layout
+        # search line layout
         search_line_layout = QtWidgets.QHBoxLayout()
         self.search_lineEdit.setStyleSheet(line_edit_style)
         search_line_layout.addWidget(self.search_label)
@@ -255,7 +259,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         buttons_layout = QtWidgets.QHBoxLayout()
         buttons_layout.addLayout(key_buttons_layout)
         buttons_layout.addStretch()
-        buttons_layout.addLayout(channel_buttons_layout)
+        buttons_layout.addLayout(channel_add_remove_buttons_layout)
 
         main_layout.addLayout(node_list_layout)
         main_layout.addLayout(search_line_layout)

@@ -2,6 +2,7 @@ import maya.cmds as cmds
 import pymel.core as pm
 from mgear.core import pyflow_widgets
 from mgear.core import pyqt
+from mgear.core import widgets
 from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
@@ -373,8 +374,7 @@ class ChannelTable(QtWidgets.QTableWidget):
             i += 1
 
     def update_table(self):
-        """Update the  table with the channels of the selected object
-        If multiple objects are selected. Only the las selected will be listed
+        """update table usin from the stored channel configuration
         """
         self.clear()
         for i in xrange(self.rowCount()):
@@ -386,8 +386,15 @@ class ChannelTable(QtWidgets.QTableWidget):
 
         self.track_widgets = []
 
-        self.chan_config = cmu.get_table_config_from_selection()
         self.config_table()
+
+    def update_table_from_selection(self):
+        """Update the  table with the channels of the selected object
+        If multiple objects are selected. Only the las selected will be listed
+        """
+        self.chan_config = cmu.get_table_config_from_selection()
+        self.update_table()
+
 
     def refresh_channels_values(self, current_time=False):
         """refresh the channel values of the table
@@ -442,7 +449,7 @@ class ChannelTable(QtWidgets.QTableWidget):
         pass
 
     def set_table_config(self, config):
-        self.config = config
+        self.chan_config = config
         self.update_table()
 
     def set_channel_fullname(self, idx, fullName=True):

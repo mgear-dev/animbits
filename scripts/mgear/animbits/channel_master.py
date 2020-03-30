@@ -1,6 +1,7 @@
 import maya.cmds as cmds
 import pymel.core as pm
 from mgear.core import pyqt
+from mgear.core import attribute
 from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
@@ -298,6 +299,12 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.add_tab_button.clicked.connect(self.add_tab)
 
+
+        self.add_channel_button.clicked.connect(
+            self.add_channels_to_current_tab)
+        self.remove_channel_button.clicked.connect(
+            self.remove_selected_channels)
+
     def get_current_table(self):
         """get the active channel table for active tab
 
@@ -313,7 +320,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def update_main_table(self):
         # TODO: add confirmation box if lock button is pressed
-        self.main_table.update_table()
+        self.main_table.update_table_from_selection()
         # Clean values buffer
         self.values_buffer = []
 
@@ -482,6 +489,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
 
     def duplicate_tab(self):
+        """Duplicate the current tab
+        """
         table = self.get_current_table()
         cur_idx = self.tab_widget.currentIndex()
         name  = self.tab_widget.tabText(cur_idx) + "_copy"
@@ -493,6 +502,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
 
     def delete_tab(self):
+        """Delete the current tab
+        """
         cur_idx = self.tab_widget.currentIndex()
         if cur_idx >= 1:
             button_pressed = QtWidgets.QMessageBox.question(
@@ -548,10 +559,75 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
 
     def add_channels_to_current_tab(self):
-        pass
+        """Add selected channel from the channel box
+
+        Returns:
+            bool: None
+        """
+        # check that main tab is not edited
+        cur_idx = self.tab_widget.currentIndex()
+        if cur_idx >= 1:
+            selected_channels = attribute.getSelectedChannels()
+            if not selected_channels:
+                return
+
+            sel = pm.selected()
+            if sel:
+                ctl = sel[0]
+            else:
+                return
+
+            # get table config
+            table = self.get_current_table()
+            config = table.get_table_config()
+
+            for ch in selected_channels:
+                # get channel data
+                ch_config = cmu.get_single_attribute_config(ctl.name(), ch)
+
+                # check if channel is already in the table
+                if ch_config["fullName"] not in config["channels"]:
+                    # add channel to config
+                    config["channels"].append(ch_config["fullName"])
+                    config["channels_data"][ch_config["fullName"]] = ch_config
+
+
+            # update table with new config
+            table.set_table_config(config)
+        else:
+            pm.displayWarning("Main Tab Can't be Edited!")
+
 
     def remove_selected_channels(self):
-        pass
+        """Remove selected channels from the current channel master table
+        """
+        # check that main tab is not edited
+        cur_idx = self.tab_widget.currentIndex()
+        if cur_idx >= 1:
+            # get table config
+            table = self.get_current_table()
+            config = table.get_table_config()
+
+            # promp before remove the channel
+            button_pressed = QtWidgets.QMessageBox.question(
+                self, "Remove Channels", "Confirm Remove Selected Channels?")
+            if button_pressed == QtWidgets.QMessageBox.Yes:
+
+                # get keys to remove
+                for item in table.selectedItems():
+                    fullName = item.data(QtCore.Qt.UserRole)["fullName"]
+                    pm.displayInfo("Removed channel: {}".format(fullName))
+                    config["channels"].remove(fullName)
+                    config["channels_data"].pop(fullName, None)
+
+                # update table with new config
+                table.set_table_config(config)
+        else:
+            pm.displayWarning("Main Tab Can't be Edited!")
+
+
+
+
 
 
 if __name__ == "__main__":

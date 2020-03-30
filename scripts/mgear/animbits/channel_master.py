@@ -470,7 +470,11 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         Returns:
             QTableWidget: the   table in the newtab
         """
-        # TODO: node is mandatory to create custom channel tables
+        current_node =  self.node_list_combobox.currentText()
+        if not current_node or not pm.objExists(current_node):
+            pm.displayWarning("Custom tab need a node to be stored")
+            return
+
         if not name:
             new_tab_dialog = cmw.CreateChannelMasterTabDialog(self)
             result = new_tab_dialog.exec_()

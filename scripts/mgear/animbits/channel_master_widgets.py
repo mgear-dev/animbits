@@ -284,17 +284,24 @@ class ChannelTable(QtWidgets.QTableWidget):
                 *args: the current value
             """
             if self.trigger_value_update:
-                cmds.setAttr(attr_config["fullName"], args[0])
+                try:
+                    cmds.setAttr(attr_config["fullName"], args[0])
 
-                # refresh button color while value update
-                for i in xrange(self.rowCount()):
-                    item = self.item(i, 0)
-                    attr = item.data(QtCore.Qt.UserRole)
-                    if attr["fullName"] == attr_config["fullName"]:
-                        button = self.cellWidget(i, 1)
-                        refresh_key_button_color(button,
-                                                 attr_config["fullName"])
-                        break
+                    # refresh button color while value update
+                    for i in xrange(self.rowCount()):
+                        item = self.item(i, 0)
+                        attr = item.data(QtCore.Qt.UserRole)
+                        if attr["fullName"] == attr_config["fullName"]:
+                            button = self.cellWidget(i, 1)
+                            refresh_key_button_color(button,
+                                                     attr_config["fullName"])
+                            break
+                except RuntimeError:
+                    fname = attr_config["fullName"]
+                    pm.displayWarning("Channel {} not Found.".format(fname)
+                                      + " Maybe the channel master"
+                                      + " contains not existing channels. "
+                                      + "Review Channel Master configuration")
 
         def open_undo_chunk():
             cmds.undoInfo(openChunk=True)
@@ -395,7 +402,6 @@ class ChannelTable(QtWidgets.QTableWidget):
         self.chan_config = cmu.get_table_config_from_selection()
         self.update_table()
 
-
     def refresh_channels_values(self, current_time=False):
         """refresh the channel values of the table
         """
@@ -404,27 +410,30 @@ class ChannelTable(QtWidgets.QTableWidget):
             ch_item = self.cellWidget(i, 2)
             item = self.item(i, 0)
             attr = item.data(QtCore.Qt.UserRole)
-            if current_time:
-                # Note: we can not set time to False because looks like
-                # having this flag force the evaluation on the animation
-                # curve and not in the current attribute value
-                val = cmds.getAttr(attr["fullName"], time=current_time)
-            else:
-                val = cmds.getAttr(attr["fullName"])
-            if attr["type"] in cmu.ATTR_SLIDER_TYPES:
-                ch_item.setValue(val)
-            elif attr["type"] == "bool":
-                if val:
-                    cbox = ch_item.findChildren(QtWidgets.QCheckBox)[0]
-                    cbox.setChecked(True)
-            elif attr["type"] == "enum":
-                ch_item.setCurrentIndex(val)
+            try:
+                if current_time:
+                    # Note: we can not set time to False because looks like
+                    # having this flag force the evaluation on the animation
+                    # curve and not in the current attribute value
+                    val = cmds.getAttr(attr["fullName"], time=current_time)
+                else:
+                    val = cmds.getAttr(attr["fullName"])
+                if attr["type"] in cmu.ATTR_SLIDER_TYPES:
+                    ch_item.setValue(val)
+                elif attr["type"] == "bool":
+                    if val:
+                        cbox = ch_item.findChildren(QtWidgets.QCheckBox)[0]
+                        cbox.setChecked(True)
+                elif attr["type"] == "enum":
+                    ch_item.setCurrentIndex(val)
 
-            # refresh button color
-            button_item = self.cellWidget(i, 1)
-            refresh_key_button_color(button_item,
-                                     attr["fullName"],
-                                     current_time)
+                # refresh button color
+                button_item = self.cellWidget(i, 1)
+                refresh_key_button_color(button_item,
+                                         attr["fullName"],
+                                         current_time)
+            except ValueError:
+                pass
 
         self.trigger_value_update = True
 

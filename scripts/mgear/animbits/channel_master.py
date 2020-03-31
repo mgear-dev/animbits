@@ -83,6 +83,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # file actions
         self.file_new_node_action = QtWidgets.QAction("New Node", self)
         self.file_new_node_action.setIcon(pyqt.get_icon("plus-square"))
+        self.file_save_node_action = QtWidgets.QAction("Save Current Node",
+                                                       self)
+        self.file_save_node_action.setIcon(pyqt.get_icon("save"))
         self.file_export_all_action = QtWidgets.QAction("Export All Tabs",
                                                         self)
         self.file_export_all_action.setIcon(pyqt.get_icon("log-out"))
@@ -136,6 +139,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.menu_bar = QtWidgets.QMenuBar()
         self.file_menu = self.menu_bar.addMenu("File")
         self.file_menu.addAction(self.file_new_node_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.file_save_node_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.file_export_all_action)
         self.file_menu.addAction(self.file_export_current_action)
@@ -279,6 +284,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         #  actions File
         self.file_new_node_action.triggered.connect(
             self.create_new_node)
+        self.file_save_node_action.triggered.connect(
+            self.save_node_data)
 
         # actions display
         self.display_fullname_action.triggered.connect(
@@ -316,7 +323,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.node_list_combobox.currentIndexChanged.connect(
             self.update_channel_master_from_node)
-        self.tab_widget.currentChanged.connect(self.update_node_data)
+        # self.tab_widget.currentChanged.connect(self.save_node_data)
 
     def get_current_table(self):
         """get the active channel table for active tab
@@ -360,21 +367,21 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         return cm_config_data
 
-    def update_node_data(self):
-        """Update current node data
+    def save_node_data(self):
+        """Save current node data
         """
         current_node = self.get_current_node()
         if not current_node:
-            pm.displayWarning("Node data can't be updated.")
+            pm.displayWarning("Node data can't be saved."\
+                " Please check if node exist")
             return
 
-        print "Updating: " + current_node
         cmn.set_node_data(current_node, self.get_channel_master_config())
+        pm.displayInfo("Node: {}  data saved".format(current_node))
 
     def get_data_from_current_node(self):
         current_node = self.get_current_node()
         if not current_node:
-            pm.displayWarning("Can't get node data.")
             return
 
         return cmn.get_node_data(current_node)
@@ -560,7 +567,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             new_table = cmw.ChannelTable(None, self)
             self.tab_widget.addTab(new_table, name)
             self.tab_widget.setCurrentIndex(self.tab_widget.count() - 1)
-            self.update_node_data()
+            # self.save_node_data()
             return new_table
         else:
             pm.displayWarning("No valid tab name!")
@@ -576,7 +583,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             config = table.get_table_config()
             new_table = self.add_tab(name)
             new_table.set_table_config(config)
-            self.update_node_data()
+            # self.save_node_data()
 
     def delete_tab(self):
         """Delete the current tab
@@ -589,7 +596,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 page = self.tab_widget.widget(cur_idx)
                 self.tab_widget.removeTab(cur_idx)
                 page.deleteLater()
-                self.update_node_data()
+                # self.save_node_data()
         else:
             pm.displayWarning("Main Tab Can't be deleted!")
 
@@ -640,7 +647,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             if name:
                 name = self.check_tab_name(name)
                 self.tab_widget.setTabText(cur_idx, name)
-                self.update_node_data()
+                # self.save_node_data()
 
             else:
                 pm.displayWarning("No valid tab name!")
@@ -682,7 +689,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
             # update table with new config
             table.set_table_config(config)
-            self.update_node_data()
+            # self.save_node_data()
         else:
             pm.displayWarning("Main Tab Can't be Edited!")
 
@@ -710,7 +717,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
                 # update table with new config
                 table.set_table_config(config)
-                self.update_node_data()
+                # self.save_node_data()
         else:
             pm.displayWarning("Main Tab Can't be Edited!")
 

@@ -592,6 +592,7 @@ class NameDialog(QtWidgets.QDialog):
             if key == QtCore.Qt.Key_Return or key == QtCore.Qt.Key_Enter:
                 self.accept()
                 return True
+        return
 
 
 class CreateChannelMasterNodeDialog(NameDialog):

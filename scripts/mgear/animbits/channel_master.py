@@ -41,8 +41,18 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.create_actions()
         self.create_widgets()
+        self.refresh_node_list()
+
+        # Init Main Channels table
+        self.main_table = cmw.ChannelTable(
+            cmu.get_table_config_from_selection(), self)
+
         self.create_layout()
         self.create_connections()
+
+
+        # Init nodes
+        self.update_channel_master_from_node()
 
         self.refresh_channels_values()
 
@@ -185,7 +195,6 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             size=17,
             icon="plus",
             toolTip="Create New Channel Master Node")
-        self.refresh_node_list()
 
         # search widgets
         self.search_label = QtWidgets.QLabel("Filter Channel: ")
@@ -203,9 +212,6 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.tab_widget.setCornerWidget(self.add_tab_button,
                                         corner=QtCore.Qt.TopRightCorner)
 
-        # Init Main Channels table
-        self.main_table = cmw.ChannelTable(
-            cmu.get_table_config_from_selection(), self)
 
     def create_layout(self):
 
@@ -303,11 +309,14 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.add_tab_button.clicked.connect(self.add_tab)
 
-
         self.add_channel_button.clicked.connect(
             self.add_channels_to_current_tab)
         self.remove_channel_button.clicked.connect(
             self.remove_selected_channels)
+
+        self.node_list_combobox.currentIndexChanged.connect(
+            self.update_channel_master_from_node)
+        self.tab_widget.currentChanged.connect(self.update_node_data)
 
     def get_current_table(self):
         """get the active channel table for active tab
@@ -320,10 +329,68 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         return table
 
     def get_all_tables(self):
-        return
+        tables = []
+        for i in xrange(self.tab_widget.count()):
+            tables.append(self.tab_widget.widget(i))
+
+        return tables
+
+    def get_current_node(self):
+        current_node = self.node_list_combobox.currentText()
+        if not current_node:
+            return
+        if not pm.objExists(current_node):
+            pm.displayWarning("Channel Master Node: {}".format(current_node)
+                              + " Can't be found or doesn't exist")
+            return
+
+        return current_node
+
+    def get_channel_master_config(self):
+
+        cm_config_data = cmu.init_channel_master_config_data()
+        tables = self.get_all_tables()
+        for i, t in enumerate(tables):
+            config = t.get_table_config()
+            name = self.tab_widget.tabText(i)
+            cm_config_data["tabs"].append(name)
+            cm_config_data["tabs_data"][name] = config
+
+        cm_config_data["current_tab"] = self.tab_widget.currentIndex()
+
+        return cm_config_data
+
+    def update_node_data(self):
+        """Update current node data
+        """
+        current_node = self.get_current_node()
+        if not current_node:
+            pm.displayWarning("Node data can't be updated.")
+            return
+
+        print "Updating: " + current_node
+        cmn.set_node_data(current_node, self.get_channel_master_config())
+
+    def get_data_from_current_node(self):
+        current_node = self.get_current_node()
+        if not current_node:
+            pm.displayWarning("Can't get node data.")
+            return
+
+        return cmn.get_node_data(current_node)
+
+    def update_channel_master_from_node(self):
+        data = self.get_data_from_current_node()
+        if not data:
+            return
+        self.clear_all_tabs()
+        for t in data["tabs"]:
+            if t != "Main":
+                new_table = self.add_tab(name=t)
+                new_table.set_table_config(data["tabs_data"][t])
+        self.tab_widget.setCurrentIndex(data["current_tab"])
 
     def update_main_table(self):
-        # TODO: add confirmation box if lock button is pressed
         self.main_table.update_table_from_selection()
         # Clean values buffer
         self.values_buffer = []
@@ -443,6 +510,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         nodes.reverse()
         self.node_list_combobox.clear()
         self.node_list_combobox.addItems(nodes)
+        # self.update_channel_master_from_node()
 
     def create_new_node(self):
         """Create a new node
@@ -474,8 +542,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         Returns:
             QTableWidget: the   table in the newtab
         """
-        current_node =  self.node_list_combobox.currentText()
-        if not current_node or not pm.objExists(current_node):
+        # current_node =  self.node_list_combobox.currentText()
+        # if not current_node or not pm.objExists(current_node):
+        if not self.get_current_node():
             pm.displayWarning("Custom tab need a node to be stored")
             return
 
@@ -491,23 +560,23 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             new_table = cmw.ChannelTable(None, self)
             self.tab_widget.addTab(new_table, name)
             self.tab_widget.setCurrentIndex(self.tab_widget.count() - 1)
+            self.update_node_data()
             return new_table
         else:
             pm.displayWarning("No valid tab name!")
-
 
     def duplicate_tab(self):
         """Duplicate the current tab
         """
         table = self.get_current_table()
         cur_idx = self.tab_widget.currentIndex()
-        name  = self.tab_widget.tabText(cur_idx) + "_copy"
+        name = self.tab_widget.tabText(cur_idx) + "_copy"
         name = self.check_tab_name(name)
         if table:
             config = table.get_table_config()
             new_table = self.add_tab(name)
             new_table.set_table_config(config)
-
+            self.update_node_data()
 
     def delete_tab(self):
         """Delete the current tab
@@ -520,8 +589,20 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 page = self.tab_widget.widget(cur_idx)
                 self.tab_widget.removeTab(cur_idx)
                 page.deleteLater()
+                self.update_node_data()
         else:
             pm.displayWarning("Main Tab Can't be deleted!")
+
+    def clear_all_tabs(self):
+        """clear all tabs but doesn't delete it from the node.
+        Main tab is not cleared
+        """
+        count = self.tab_widget.count()
+        for i in reversed(range(count)):
+            if i >= 1:
+                page = self.tab_widget.widget(i)
+                self.tab_widget.removeTab(i)
+                page.deleteLater()
 
     def check_tab_name(self, name):
         """Check if the tab name is unique and add an index if not
@@ -559,12 +640,12 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             if name:
                 name = self.check_tab_name(name)
                 self.tab_widget.setTabText(cur_idx, name)
+                self.update_node_data()
 
             else:
                 pm.displayWarning("No valid tab name!")
         else:
             pm.displayWarning("Main Tab Can't be renamed!")
-
 
     def add_channels_to_current_tab(self):
         """Add selected channel from the channel box
@@ -599,12 +680,11 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                     config["channels"].append(ch_config["fullName"])
                     config["channels_data"][ch_config["fullName"]] = ch_config
 
-
             # update table with new config
             table.set_table_config(config)
+            self.update_node_data()
         else:
             pm.displayWarning("Main Tab Can't be Edited!")
-
 
     def remove_selected_channels(self):
         """Remove selected channels from the current channel master table
@@ -630,12 +710,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
                 # update table with new config
                 table.set_table_config(config)
+                self.update_node_data()
         else:
             pm.displayWarning("Main Tab Can't be Edited!")
-
-
-
-
 
 
 if __name__ == "__main__":

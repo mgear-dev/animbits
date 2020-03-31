@@ -1,7 +1,11 @@
+import json
+import ast
 from maya import cmds
 import pymel.core  as pm
 
 from mgear.core import attribute
+
+from . import channel_master_utils as cmu
 
 
 __TAG__ = "_isChannelMasterNode"
@@ -26,7 +30,6 @@ def create_channel_master_node(name):
     Returns:
         str: name of the channel master node
     """
-    fullName = name + "_channelMasterNode"
 
     # Create data node (render sphere for outliner "icon")
     shp = cmds.createNode("renderSphere")
@@ -36,22 +39,28 @@ def create_channel_master_node(name):
 
     # Rename data node
     node = cmds.listRelatives(shp, p=True)[0]
-    node = cmds.rename(node, fullName)
+    node = cmds.rename(node, name)
 
     cmds.addAttr(node, ln=__TAG__, at="bool", dv=True)
     cmds.setAttr("{}.{}".format(node, __TAG__), k=False, l=True)
     cmds.addAttr(node, ln="data", dt="string")
 
     attribute.lockAttribute(pm.PyNode(node))
+
+    # init data
+    cmds.setAttr("{}.data".format(node),
+                 cmu.init_channel_master_config_data(),
+                 type="string")
     return node
 
 
 def get_node_data(node):
-    pass
+    data = cmds.getAttr("{}.data".format(node))
+    return ast.literal_eval(data)
 
 
 def set_node_data(node, data):
-    pass
+    cmds.setAttr("{}.data".format(node), data, type="string")
 
 
 def export_data(node):

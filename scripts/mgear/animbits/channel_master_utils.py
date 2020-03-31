@@ -32,6 +32,7 @@ def init_channel_master_config_data():
     config_data = {}
     config_data["tabs"] = []
     config_data["tabs_data"] = {}
+    config_data["current_tab"] = 0
 
     return config_data
 
@@ -108,11 +109,6 @@ def get_attributes_config(node):
 
     return config_data
 
-
-def refresh_channel_value():
-    # refresh channel value, after creation or scene manipulation
-    # should be deactivate when playback, timeline scroll, etc
-    pass
 
 
 def get_table_config_from_selection():

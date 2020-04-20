@@ -63,4 +63,7 @@ class CacheManagerStringListModel(QtCore.QAbstractListModel):
         **rowCount** returns the number of items in the list model
         """
 
-        return len(self.__items)
+        if self.__items:
+            return len(self.__items)
+        else:
+            return 0

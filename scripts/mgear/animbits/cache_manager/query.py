@@ -31,12 +31,23 @@ def find_model_group_inside_rig(geo_node, rig_node):
     """
 
     try:
-        model_group = ([x for x in cmds.listRelatives(rig_node,
-                       allDescendents=True) if geo_node in x.split(":")[-1]]
-                       or None)
+        model_group = None
+        for x in cmds.ls(cmds.listRelatives(rig_node, allDescendents=True,
+                                            fullPath=True), type="transform"):
+            if x.split("|")[-1].split(":")[-1] == geo_node:
+                model_group = x
+                break
+
+        if not model_group:
+            for x in cmds.ls(cmds.listRelatives(cmds.listRelatives(
+                             rig_node, parent=True)[0], allDescendents=True,
+                             fullPath=True), type="transform"):
+                if x.split("|")[-1].split(":")[-1] == geo_node:
+                    model_group = x
+                    break
 
         if model_group:
-            return model_group[0]
+            return model_group
         else:
             print("Could not find the geo node inside the rig node.")
 

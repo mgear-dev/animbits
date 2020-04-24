@@ -220,6 +220,9 @@ class ChannelTable(QtWidgets.QTableWidget):
 
             for itm in items:
                 itm.setBackground(color)
+                attr_config = itm.data(QtCore.Qt.UserRole)
+                attr_config["color"] = color.getRgbF()
+                itm.setData(QtCore.Qt.UserRole, attr_config)
 
     def reset_value_slot(self):
         items = self.selectedItems()
@@ -363,6 +366,10 @@ class ChannelTable(QtWidgets.QTableWidget):
                         partial(value_update, at))
 
             label_item = QtWidgets.QTableWidgetItem(at["niceName"] + "  ")
+            if at["color"]:
+                color = QtGui.QColor()
+                color.setRgbF(*at["color"])
+                label_item.setBackground(color)
             label_item.setData(QtCore.Qt.UserRole, at)
             label_item.setTextAlignment(QtCore.Qt.AlignRight)
             label_item.setToolTip(at["fullName"])

@@ -26,6 +26,7 @@ def init_table_config_data():
 
     return config_data
 
+
 def init_channel_master_config_data():
     """Initialize the dictionary to store channel master tabs configuration
     """
@@ -35,6 +36,7 @@ def init_channel_master_config_data():
     config_data["current_tab"] = 0
 
     return config_data
+
 
 def get_keyable_attribute(node):
     """Get keyable attributes from node
@@ -108,7 +110,6 @@ def get_attributes_config(node):
             config_data["channels_data"][config["fullName"]] = config
 
     return config_data
-
 
 
 def get_table_config_from_selection():

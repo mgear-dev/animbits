@@ -50,7 +50,6 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.create_layout()
         self.create_connections()
 
-
         # Init nodes
         self.update_channel_master_from_node()
 
@@ -217,7 +216,6 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.tab_widget.setCornerWidget(self.add_tab_button,
                                         corner=QtCore.Qt.TopRightCorner)
 
-
     def create_layout(self):
 
         line_edit_style = """
@@ -372,8 +370,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         current_node = self.get_current_node()
         if not current_node:
-            pm.displayWarning("Node data can't be saved."\
-                " Please check if node exist")
+            pm.displayWarning("Node data can't be saved."
+                              " Please check if node exist")
             return
 
         cmn.set_node_data(current_node, self.get_channel_master_config())

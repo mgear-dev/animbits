@@ -256,6 +256,12 @@ class ChannelTable(QtWidgets.QTableWidget):
                     new_range = set_range_dialog.get_range()
                     ch_item.setRange(new_range[0], new_range[1])
 
+                    # store new range
+                    attr_config = itm.data(QtCore.Qt.UserRole)
+                    attr_config["min"] = new_range[0]
+                    attr_config["max"] = new_range[1]
+                    itm.setData(QtCore.Qt.UserRole, attr_config)
+
     def setup_table(self):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
                            QtWidgets.QSizePolicy.Expanding)

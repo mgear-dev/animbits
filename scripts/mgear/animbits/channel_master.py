@@ -93,6 +93,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_export_current_action.setIcon(pyqt.get_icon("log-out"))
         self.file_import_action = QtWidgets.QAction("Import", self)
         self.file_import_action.setIcon(pyqt.get_icon("log-in"))
+        self.file_import_add_action = QtWidgets.QAction("Import Add", self)
+        self.file_import_add_action.setIcon(pyqt.get_icon("log-in"))
 
         # Display actions
         self.display_fullname_action = QtWidgets.QAction(
@@ -144,6 +146,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_menu.addAction(self.file_export_all_action)
         self.file_menu.addAction(self.file_export_current_action)
         self.file_menu.addAction(self.file_import_action)
+        self.file_menu.addAction(self.file_import_add_action)
 
         self.display_menu = self.menu_bar.addMenu("Display")
         self.display_menu.addAction(self.display_fullname_action)
@@ -284,6 +287,14 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.create_new_node)
         self.file_save_node_action.triggered.connect(
             self.save_node_data)
+        self.file_export_all_action.triggered.connect(
+            self.export_node_data)
+        self.file_export_current_action.triggered.connect(
+            self.export_tab_data)
+        self.file_import_action.triggered.connect(
+            self.import_node_data)
+        self.file_import_add_action.triggered.connect(
+            self.add_node_data)
 
         # actions display
         self.display_fullname_action.triggered.connect(
@@ -322,6 +333,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.node_list_combobox.currentIndexChanged.connect(
             self.update_channel_master_from_node)
         # self.tab_widget.currentChanged.connect(self.save_node_data)
+        self.tab_widget.currentChanged.connect(self.tab_change)
 
     def get_current_table(self):
         """get the active channel table for active tab
@@ -334,6 +346,11 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         return table
 
     def get_all_tables(self):
+        """Get all the table widget from each tab
+
+        Returns:
+            TYPE: Description
+        """
         tables = []
         for i in xrange(self.tab_widget.count()):
             tables.append(self.tab_widget.widget(i))
@@ -341,6 +358,11 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         return tables
 
     def get_current_node(self):
+        """Get the current node
+
+        Returns:
+            str: current node name
+        """
         current_node = self.node_list_combobox.currentText()
         if not current_node:
             return
@@ -352,7 +374,11 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         return current_node
 
     def get_channel_master_config(self):
+        """Get the configuration from the current channel master
 
+        Returns:
+            TYPE: Description
+        """
         cm_config_data = cmu.init_channel_master_config_data()
         tables = self.get_all_tables()
         for i, t in enumerate(tables):
@@ -364,6 +390,14 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         cm_config_data["current_tab"] = self.tab_widget.currentIndex()
 
         return cm_config_data
+
+    def get_current_tab_name(self):
+        """get the current taba name
+
+        Returns:
+            str: current tab name
+        """
+        return self.tab_widget.tabText(self.tab_widget.currentIndex())
 
     def save_node_data(self):
         """Save current node data
@@ -377,14 +411,51 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         cmn.set_node_data(current_node, self.get_channel_master_config())
         pm.displayInfo("Node: {}  data saved".format(current_node))
 
+    def export_node_data(self):
+        """Export the data configuration for the node. This include all
+        the tabs
+        """
+        current_node = self.get_current_node()
+        cmn.export_data(current_node)
+
+    def export_tab_data(self):
+        """Export the data configuration from the current tab
+        """
+        current_node = self.get_current_node()
+        current_tab = self.get_current_tab_name()
+        cmn.export_data(current_node, current_tab)
+
     def get_data_from_current_node(self):
+        """Get data configuration from the current node
+
+        Returns:
+            TYPE: Description
+        """
         current_node = self.get_current_node()
         if not current_node:
             return
 
         return cmn.get_node_data(current_node)
 
+    def import_node_data(self):
+        """Create a new node and import the data from an exported data file
+        """
+        sel = pm.selected()
+        node = cmn.import_data()
+        self.set_active_node(node)
+        pm.select(sel)
+
+    def add_node_data(self):
+        """Add the imported data to the current node
+        """
+        current_node = self.get_current_node()
+        cmn.import_data(node=current_node, add_data=True)
+        self.update_channel_master_from_node()
+
     def update_channel_master_from_node(self):
+        """Update the channel master content from the node configuration
+
+        """
         data = self.get_data_from_current_node()
         if not data:
             return
@@ -396,6 +467,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.tab_widget.setCurrentIndex(data["current_tab"])
 
     def update_main_table(self):
+        """update main table content
+        """
         self.main_table.update_table_from_selection()
         # Clean values buffer
         self.values_buffer = []
@@ -426,6 +499,12 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if table:
             table.refresh_channels_values(current_time)
 
+    def tab_change(self):
+        """Slot triggered when tab change
+        """
+        self.refresh_channels_values()
+        self.action_display_fullname()
+
     # actions
     def action_display_fullname(self):
         """Toggle channel name  from nice name to full name
@@ -436,26 +515,47 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 i, self.display_fullname_action.isChecked())
 
     def action_default_order(self):
-
-        # table = self.get_current_table()
-        print "Need to be implemented from the node stored order"
+        """reset the channels to the default order
+        """
+        current_tab = self.tab_widget.currentIndex()
+        self.update_channel_master_from_node()
+        self.tab_widget.setCurrentIndex(current_tab)
+        # print "Need to be implemented from the node stored order"
 
     def action_alphabetical_order(self):
-
-        table = self.get_current_table()
-        table.sortItems(0, order=QtCore.Qt.AscendingOrder)
+        """order  the channels alphabetically
+        """
+        # table = self.get_current_table()
+        for i in xrange(self.tab_widget.count()):
+            table = self.tab_widget.widget(i)
+            table.sortItems(0, order=QtCore.Qt.AscendingOrder)
 
     # callback slots
     def selection_change(self, *args):
+        """Callback triggered when selection change
+
+        Args:
+            *args: Description
+        """
         if not self.lock_button.isChecked():
             self.update_main_table()
 
     def time_changed(self, *args):
+        """Callback triger when time change
+
+        Args:
+            *args: Description
+        """
         self.refresh_channels_values(current_time=pm.currentTime())
 
     # Keyframe
 
     def key_all(self, *args):
+        """Set a keyframe in all the channels
+
+        Args:
+            *args: Description
+        """
         table = self.get_current_table()
         not_keyed = []
         keyed = []
@@ -531,15 +631,23 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         name = new_node_dialog.get_name()
         if name:
             node = cmn.create_channel_master_node(name)
-            self.refresh_node_list()
-            for i in xrange(self.node_list_combobox.count()):
-                if self.node_list_combobox.itemText(i) == node:
-                    self.node_list_combobox.setCurrentIndex(i)
-                    break
+            self.set_active_node(node)
             pm.select(sel)
 
         else:
             pm.displayWarning("No valid node name!")
+
+    def set_active_node(self, name):
+        """Set the active node
+
+        Args:
+            name (str): name of the node
+        """
+        self.refresh_node_list()
+        for i in xrange(self.node_list_combobox.count()):
+            if self.node_list_combobox.itemText(i) == name:
+                self.node_list_combobox.setCurrentIndex(i)
+                break
 
     def add_tab(self, name=None):
         """Add new tab to the channel master

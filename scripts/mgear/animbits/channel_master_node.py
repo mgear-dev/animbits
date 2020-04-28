@@ -4,6 +4,7 @@ from maya import cmds
 import pymel.core as pm
 
 from mgear.core import attribute
+from mgear.core import string
 
 from . import channel_master_utils as cmu
 
@@ -40,7 +41,7 @@ def create_channel_master_node(name):
 
     # Rename data node
     node = cmds.listRelatives(shp, p=True)[0]
-    node = cmds.rename(node, name)
+    node = cmds.rename(node, string.normalize(name))
 
     cmds.addAttr(node, ln=__TAG__, at="bool", dv=True)
     cmds.setAttr("{}.{}".format(node, __TAG__), k=False, l=True)

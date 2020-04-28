@@ -407,9 +407,9 @@ class ChannelTable(QtWidgets.QTableWidget):
                 if attr["type"] in cmu.ATTR_SLIDER_TYPES:
                     ch_item.setValue(val)
                 elif attr["type"] == "bool":
-                    if val:
-                        cbox = ch_item.findChildren(QtWidgets.QCheckBox)[0]
-                        cbox.setChecked(True)
+                    # if val:
+                    cbox = ch_item.findChildren(QtWidgets.QCheckBox)[0]
+                    cbox.setChecked(val)
                 elif attr["type"] == "enum":
                     ch_item.setCurrentIndex(val)
 

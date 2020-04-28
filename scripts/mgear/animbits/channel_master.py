@@ -523,7 +523,6 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         current_tab = self.tab_widget.currentIndex()
         self.update_channel_master_from_node()
         self.tab_widget.setCurrentIndex(current_tab)
-        # print "Need to be implemented from the node stored order"
 
     def action_alphabetical_order(self):
         """order  the channels alphabetically

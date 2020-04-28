@@ -154,6 +154,12 @@ class ChannelTable(QtWidgets.QTableWidget):
         reset_value_action.setIcon(pyqt.get_icon("rewind"))
         reset_value_action.triggered.connect(self.reset_value_slot)
         self.menu.addAction(reset_value_action)
+        self.menu.addSeparator()
+
+        select_attr_host_action = QtWidgets.QAction('Select Host', self)
+        select_attr_host_action.setIcon(pyqt.get_icon("arrow-up"))
+        select_attr_host_action.triggered.connect(self.select_host)
+        self.menu.addAction(select_attr_host_action)
 
     def set_color_slot(self):
         items = self.selectedItems()
@@ -170,6 +176,15 @@ class ChannelTable(QtWidgets.QTableWidget):
                 attr_config = itm.data(QtCore.Qt.UserRole)
                 attr_config["color"] = color.getRgbF()
                 itm.setData(QtCore.Qt.UserRole, attr_config)
+
+    def select_host(self):
+        items = self.selectedItems()
+        if items:
+            ctls = []
+            for itm in items:
+                attr_config = itm.data(QtCore.Qt.UserRole)
+                ctls.append(attr_config["ctl"])
+            pm.select(ctls)
 
     def reset_value_slot(self):
         items = self.selectedItems()

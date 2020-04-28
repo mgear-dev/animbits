@@ -112,60 +112,6 @@ def refresh_key_button_color(button, attr, current_time=False):
             'QPushButton {background-color: #ABA8A6;}')
 
 
-def create_key_button(item_data):
-    """Create a keyframing button
-
-    Args:
-        item_data (dict): Attribute channel configuration dictionary
-
-    Returns:
-        QPushButton: The keyframe button
-    """
-    button = create_button()
-    attr = item_data["fullName"]
-    refresh_key_button_color(button, attr)
-
-    # right click menu
-    pop_menu = QtWidgets.QMenu(button)
-
-    next_key_action = QtWidgets.QAction('Next Keyframe', button)
-    next_key_action.setIcon(pyqt.get_icon("arrow-right"))
-    next_key_action.triggered.connect(partial(cmu.next_keyframe, attr))
-    pop_menu.addAction(next_key_action)
-
-    previous_key_action = QtWidgets.QAction('previous Keyframe', button)
-    previous_key_action.setIcon(pyqt.get_icon("arrow-left"))
-    previous_key_action.triggered.connect(partial(cmu.previous_keyframe, attr))
-    pop_menu.addAction(previous_key_action)
-
-    pop_menu.addSeparator()
-
-    remove_animation_action = QtWidgets.QAction('Remove Animation', button)
-    remove_animation_action.setIcon(pyqt.get_icon("trash"))
-    remove_animation_action.triggered.connect(
-        partial(cmu.remove_animation, attr))
-    pop_menu.addAction(remove_animation_action)
-
-    def context_menu(point):
-        pop_menu.exec_(button.mapToGlobal(point))
-
-    button.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-    button.customContextMenuRequested.connect(context_menu)
-
-    def button_clicked():
-        if cmu.current_frame_has_key(attr) and cmu.value_equal_keyvalue(attr):
-            cmu.remove_key(attr)
-
-        else:
-            cmu.set_key(attr)
-
-        refresh_key_button_color(button, attr)
-
-    button.clicked.connect(button_clicked)
-
-    return button
-
-
 ###################################################
 # Channel Table Class
 ###################################################
@@ -173,10 +119,11 @@ def create_key_button(item_data):
 
 class ChannelTable(QtWidgets.QTableWidget):
 
-    def __init__(self, chan_config=None, parent=None):
+    def __init__(self, chan_config=None, namespace=None, parent=None):
         super(ChannelTable, self).__init__(parent)
         self.chan_config = chan_config
         self.trigger_value_update = True
+        self.namespace = namespace
         self.track_widgets = []
         self.create_menu()
         self.setup_table()
@@ -282,6 +229,20 @@ class ChannelTable(QtWidgets.QTableWidget):
 
             self.menu.popup(QtGui.QCursor.pos())
 
+    def namespace_sync(self, name):
+        """Sync the attribute name with the current name space
+
+        Args:
+            name (str): attribute name
+
+        Returns:
+            str: namespace sync name
+        """
+        if self.namespace and self.namespace not in name:
+            name = self.namespace + name
+
+        return name
+
     def config_table(self):
 
         def value_update(attr_config, *args):
@@ -294,19 +255,22 @@ class ChannelTable(QtWidgets.QTableWidget):
             """
             if self.trigger_value_update:
                 try:
-                    cmds.setAttr(attr_config["fullName"], args[0])
+                    cmds.setAttr(self.namespace_sync(attr_config["fullName"]),
+                                 args[0])
 
                     # refresh button color while value update
                     for i in xrange(self.rowCount()):
                         item = self.item(i, 0)
                         attr = item.data(QtCore.Qt.UserRole)
-                        if attr["fullName"] == attr_config["fullName"]:
+                        if (self.namespace_sync(attr["fullName"]) ==
+                                self.namespace_sync(attr_config["fullName"])):
                             button = self.cellWidget(i, 1)
-                            refresh_key_button_color(button,
-                                                     attr_config["fullName"])
+                            refresh_key_button_color(
+                                button,
+                                self.namespace_sync(attr_config["fullName"]))
                             break
                 except RuntimeError:
-                    fname = attr_config["fullName"]
+                    fname = self.namespace_sync(attr_config["fullName"])
                     pm.displayWarning("Channel {} not Found.".format(fname)
                                       + " Maybe the channel master"
                                       + " contains not existing channels. "
@@ -324,7 +288,13 @@ class ChannelTable(QtWidgets.QTableWidget):
         i = 0
         for ch in self.chan_config["channels"]:
             at = self.chan_config["channels_data"][ch]
-            val = cmds.getAttr(at["fullName"])
+            at_name = self.namespace_sync(at["fullName"])
+            try:
+                val = cmds.getAttr(at_name)
+            except ValueError:
+                pm.displayWarning(
+                    "{} not found. Maybe wrong NameSpace?".format(at_name))
+                continue
             if at["type"] in cmu.ATTR_SLIDER_TYPES:
                 if at["type"] == "long":
                     Type = "int"
@@ -378,10 +348,10 @@ class ChannelTable(QtWidgets.QTableWidget):
                 label_item.setBackground(color)
             label_item.setData(QtCore.Qt.UserRole, at)
             label_item.setTextAlignment(QtCore.Qt.AlignRight)
-            label_item.setToolTip(at["fullName"])
+            label_item.setToolTip(self.namespace_sync(at["fullName"]))
             label_item.setFlags(label_item.flags() ^ QtCore.Qt.ItemIsEditable)
 
-            key_button = create_key_button(at)
+            key_button = self.create_key_button(at)
 
             self.insertRow(i)
             self.setRowHeight(i, 17)
@@ -412,7 +382,9 @@ class ChannelTable(QtWidgets.QTableWidget):
         """Update the  table with the channels of the selected object
         If multiple objects are selected. Only the las selected will be listed
         """
-        self.chan_config = cmu.get_table_config_from_selection()
+        cc, ns = cmu.get_table_config_from_selection()
+        self.chan_config = cc
+        self.namespace = ns
         self.update_table()
 
     def refresh_channels_values(self, current_time=False):
@@ -428,9 +400,10 @@ class ChannelTable(QtWidgets.QTableWidget):
                     # Note: we can not set time to False because looks like
                     # having this flag force the evaluation on the animation
                     # curve and not in the current attribute value
-                    val = cmds.getAttr(attr["fullName"], time=current_time)
+                    val = cmds.getAttr(self.namespace_sync(
+                        attr["fullName"]), time=current_time)
                 else:
-                    val = cmds.getAttr(attr["fullName"])
+                    val = cmds.getAttr(self.namespace_sync(attr["fullName"]))
                 if attr["type"] in cmu.ATTR_SLIDER_TYPES:
                     ch_item.setValue(val)
                 elif attr["type"] == "bool":
@@ -443,7 +416,7 @@ class ChannelTable(QtWidgets.QTableWidget):
                 # refresh button color
                 button_item = self.cellWidget(i, 1)
                 refresh_key_button_color(button_item,
-                                         attr["fullName"],
+                                         self.namespace_sync(attr["fullName"]),
                                          current_time)
             except ValueError:
                 pass
@@ -459,6 +432,8 @@ class ChannelTable(QtWidgets.QTableWidget):
         config_data = cmu.init_table_config_data()
         for i in xrange(self.rowCount()):
             chan_data = self.get_channel_config(i)
+            # fullname = self.namespace_sync(chan_data["fullName"])
+            # we don't want to store with namespace
             fullname = chan_data["fullName"]
             config_data["channels"].append(fullname)
             config_data["channels_data"][fullname] = chan_data
@@ -470,8 +445,9 @@ class ChannelTable(QtWidgets.QTableWidget):
         # for the first time.
         pass
 
-    def set_table_config(self, config):
+    def set_table_config(self, config, namespace=None):
         self.chan_config = config
+        self.namespace = namespace
         self.update_table()
 
     def set_channel_fullname(self, idx, fullName=True):
@@ -488,6 +464,62 @@ class ChannelTable(QtWidgets.QTableWidget):
         item = self.item(idx, 0)
         txt = item.data(QtCore.Qt.UserRole)[key] + "  "
         item.setText(txt)
+
+    def create_key_button(self, item_data):
+        """Create a keyframing button
+
+        Args:
+            item_data (dict): Attribute channel configuration dictionary
+
+        Returns:
+            QPushButton: The keyframe button
+        """
+        button = create_button()
+        attr = self.namespace_sync(item_data["fullName"])
+        refresh_key_button_color(button, attr)
+
+        # right click menu
+        pop_menu = QtWidgets.QMenu(button)
+
+        next_key_action = QtWidgets.QAction('Next Keyframe', button)
+        next_key_action.setIcon(pyqt.get_icon("arrow-right"))
+        next_key_action.triggered.connect(partial(cmu.next_keyframe, attr))
+        pop_menu.addAction(next_key_action)
+
+        previous_key_action = QtWidgets.QAction('previous Keyframe', button)
+        previous_key_action.setIcon(pyqt.get_icon("arrow-left"))
+        previous_key_action.triggered.connect(
+            partial(cmu.previous_keyframe, attr))
+        pop_menu.addAction(previous_key_action)
+
+        pop_menu.addSeparator()
+
+        remove_animation_action = QtWidgets.QAction('Remove Animation', button)
+        remove_animation_action.setIcon(pyqt.get_icon("trash"))
+        remove_animation_action.triggered.connect(
+            partial(cmu.remove_animation, attr))
+        pop_menu.addAction(remove_animation_action)
+
+        def context_menu(point):
+            pop_menu.exec_(button.mapToGlobal(point))
+
+        button.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        button.customContextMenuRequested.connect(context_menu)
+
+        def button_clicked():
+            has_key = cmu.current_frame_has_key(attr)
+            key_val = cmu.value_equal_keyvalue(attr)
+            if has_key and key_val:
+                cmu.remove_key(attr)
+
+            else:
+                cmu.set_key(attr)
+
+            refresh_key_button_color(button, attr)
+
+        button.clicked.connect(button_clicked)
+
+        return button
 
 
 ##################

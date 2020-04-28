@@ -36,6 +36,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.setWindowFlags(QtCore.Qt.Tool)
 
         self.values_buffer = []
+        self.namespace = None
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, 1)
 
@@ -44,8 +45,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.refresh_node_list()
 
         # Init Main Channels table
-        self.main_table = cmw.ChannelTable(
-            cmu.get_table_config_from_selection(), self)
+        chan_config, namespace = cmu.get_table_config_from_selection()
+        self.main_table = cmw.ChannelTable(chan_config, namespace, self)
 
         self.create_layout()
         self.create_connections()
@@ -434,6 +435,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         current_node = self.get_current_node()
         if not current_node:
             return
+        self.namespace = pm.PyNode(current_node).namespace()
 
         return cmn.get_node_data(current_node)
 
@@ -463,7 +465,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         for t in data["tabs"]:
             if t != "Main":
                 new_table = self.add_tab(name=t)
-                new_table.set_table_config(data["tabs_data"][t])
+                new_table.set_table_config(data["tabs_data"][t],
+                                           self.namespace)
         self.tab_widget.setCurrentIndex(data["current_tab"])
 
     def update_main_table(self):
@@ -561,7 +564,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         keyed = []
         for i in xrange(table.rowCount()):
             item = table.item(i, 0)
-            attr = item.data(QtCore.Qt.UserRole)["fullName"]
+            attr = table.namespace_sync(
+                item.data(QtCore.Qt.UserRole)["fullName"])
             if cmu.current_frame_has_key(attr) \
                     and cmu.value_equal_keyvalue(attr):
                 keyed.append(attr)
@@ -585,8 +589,11 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.values_buffer = []
         for i in xrange(table.rowCount()):
             item = table.item(i, 0)
-            attr = item.data(QtCore.Qt.UserRole)
-            self.values_buffer.append(cmds.getAttr(attr["fullName"]))
+            attr = table.namespace_sync(
+                item.data(QtCore.Qt.UserRole)["fullName"])
+            # attr = item.data(QtCore.Qt.UserRole)
+            self.values_buffer.append(cmds.getAttr(attr))
+            # self.values_buffer.append(cmds.getAttr(attr["fullName"]))
 
     def paste_all_values(self, *args):
         """Paste and key values stored in buffer
@@ -602,9 +609,13 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         table = self.get_current_table()
         for i in xrange(table.rowCount()):
             item = table.item(i, 0)
-            attr = item.data(QtCore.Qt.UserRole)
-            cmds.setAttr(attr["fullName"], self.values_buffer[i])
-            cmu.set_key(attr["fullName"])
+            # attr = item.data(QtCore.Qt.UserRole)
+            attr = table.namespace_sync(
+                item.data(QtCore.Qt.UserRole)["fullName"])
+            # cmds.setAttr(attr["fullName"], self.values_buffer[i])
+            cmds.setAttr(attr, self.values_buffer[i])
+            cmu.set_key(attr)
+            # cmu.set_key(attr["fullName"])
 
         self.refresh_channels_values()
 
@@ -688,7 +699,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if table:
             config = table.get_table_config()
             new_table = self.add_tab(name)
-            new_table.set_table_config(config)
+            new_table.set_table_config(config, self.namespace)
             # self.save_node_data()
 
     def delete_tab(self):
@@ -788,13 +799,16 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 ch_config = cmu.get_single_attribute_config(ctl.name(), ch)
 
                 # check if channel is already in the table
-                if ch_config["fullName"] not in config["channels"]:
+                ch_name = ch_config["fullName"]
+                if ch_name not in config["channels"]:
                     # add channel to config
-                    config["channels"].append(ch_config["fullName"])
-                    config["channels_data"][ch_config["fullName"]] = ch_config
+                    config["channels"].append(ch_name)
+                    config["channels_data"][ch_name] = ch_config
+                else:
+                    pm.displayWarning("{} already in table!".format())
 
             # update table with new config
-            table.set_table_config(config)
+            table.set_table_config(config, self.namespace)
             # self.save_node_data()
         else:
             pm.displayWarning("Main Tab Can't be Edited!")

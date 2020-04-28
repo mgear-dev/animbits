@@ -63,7 +63,8 @@ def get_single_attribute_config(node, attr):
         dict: attribute configuration
     """
     config = {}
-    config["ctl"] = node
+    # config["ctl"] = node
+    config["ctl"] = pm.NameParser(node).stripNamespace().__str__()
     config["color"] = None  # This is a place holder for the channel UI color
     config["type"] = cmds.attributeQuery(attr, node=node, attributeType=True)
     config["niceName"] = cmds.attributeQuery(attr, node=node, niceName=True)
@@ -115,10 +116,12 @@ def get_attributes_config(node):
 def get_table_config_from_selection():
     oSel = pm.selected()
     attrs_config = None
+    namespace = None
     if oSel:
+        namespace = oSel[-1].namespace()
         ctl = oSel[-1].name()
         attrs_config = get_attributes_config(ctl)
-    return attrs_config
+    return attrs_config, namespace
 
 
 def reset_attribute(attr_config):
@@ -174,7 +177,9 @@ def get_anim_value_at_current_frame(attr):
     Returns:
         bol, int or float: animation current value
     """
-    return cmds.keyframe(attr, query=True, eval=True)[0]
+    val = cmds.keyframe(attr, query=True, eval=True)
+    if val:
+        return val[0]
 
 
 def set_key(attr):

@@ -621,11 +621,16 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def refresh_node_list(self):
         """Refresh the channel master node list
         """
+        current_node = self.node_list_combobox.currentText()
         nodes = cmn.list_channel_master_nodes()
-        nodes.reverse()
         self.node_list_combobox.clear()
+        if not nodes:
+            self.clear_all_tabs()
+            return
+        nodes.reverse()
         self.node_list_combobox.addItems(nodes)
-        # self.update_channel_master_from_node()
+        if current_node and pm.objExists(current_node):
+            self._set_active_node(current_node)
 
     def create_new_node(self):
         """Create a new node
@@ -647,17 +652,25 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         else:
             pm.displayWarning("No valid node name!")
 
-    def set_active_node(self, name):
+    def _set_active_node(self, name):
         """Set the active node
 
         Args:
             name (str): name of the node
         """
-        self.refresh_node_list()
         for i in xrange(self.node_list_combobox.count()):
             if self.node_list_combobox.itemText(i) == name:
                 self.node_list_combobox.setCurrentIndex(i)
                 break
+
+    def set_active_node(self, name):
+        """Refresh list and Set the active node
+
+        Args:
+            name (str): name of the node
+        """
+        self.refresh_node_list()
+        self._set_active_node(name)
 
     def add_tab(self, name=None):
         """Add new tab to the channel master
@@ -665,8 +678,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         Returns:
             QTableWidget: the   table in the newtab
         """
-        # current_node =  self.node_list_combobox.currentText()
-        # if not current_node or not pm.objExists(current_node):
+
         if not self.get_current_node():
             pm.displayWarning("Custom tab need a node to be stored")
             return

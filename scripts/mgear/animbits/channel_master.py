@@ -2,6 +2,7 @@ import maya.cmds as cmds
 import pymel.core as pm
 from mgear.core import pyqt
 from mgear.core import attribute
+from mgear.core import utils
 from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
@@ -249,11 +250,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         channel_add_remove_buttons_layout = QtWidgets.QHBoxLayout()
         channel_add_remove_buttons_layout.addWidget(self.add_channel_button)
         channel_add_remove_buttons_layout.addWidget(self.remove_channel_button)
-        # channel_add_remove_buttons_layout.addLayout(channel_buttons_layout)
-        # channel_buttons_layout.addWidget(self.lock_button)
         channel_add_remove_buttons_layout.addWidget(self.lock_button)
-        # channel_buttons_layout.addWidget(self.refresh_button)
-        # channel_add_remove_buttons_layout.addWidget(self.refresh_button)
 
         # node list layout
         node_list_layout = QtWidgets.QHBoxLayout()
@@ -304,6 +301,12 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.action_default_order)
         self.display_order_alphabetical_action.triggered.connect(
             self.action_alphabetical_order)
+
+        # actions keyframe
+        self.key_all_action.triggered.connect(self.key_all)
+        self.key_copy_action.triggered.connect(self.copy_all_values)
+        self.key_paste_action.triggered.connect(self.paste_all_values)
+        self.key_del_frame_action.triggered.connect(self.remove_key_all)
 
         # action tab
         self.tab_new_action.triggered.connect(self.add_tab)
@@ -507,6 +510,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         self.refresh_channels_values()
         self.action_display_fullname()
+        self.values_buffer = []
 
     # actions
     def action_display_fullname(self):
@@ -552,13 +556,12 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     # Keyframe
 
-    def key_all(self, *args):
-        """Set a keyframe in all the channels
+    def get_key_status(self, table):
+        """Retunr 2 lists with the keyed and not keyed channels
 
         Args:
-            *args: Description
+            table (TYPE): Description
         """
-        table = self.get_current_table()
         not_keyed = []
         keyed = []
         for i in xrange(table.rowCount()):
@@ -571,12 +574,44 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             else:
                 not_keyed.append(attr)
 
-        if not_keyed:
-            cmu.set_key(not_keyed)
+        return keyed, not_keyed
+
+    def key_all(self, *args):
+        """Set a keyframe in all the channels
+
+        Args:
+            *args: Description
+        """
+        if self.key_all_tabs_action.isChecked():
+            pm.displayInfo("Keyframe all tabs."
+                           " Only add keys. Not toggle key behavior!")
+            tables = self.get_all_tables()
+            key_only = True
         else:
-            cmu.remove_key(keyed)
+            tables = [self.get_current_table()]
+            key_only = False
+
+        for table in tables:
+            keyed, not_keyed = self.get_key_status(table)
+
+            if not_keyed:
+                cmu.set_key(not_keyed)
+            elif not key_only:
+                cmu.remove_key(keyed)
 
         self.refresh_channels_values()
+
+    def remove_key_all(self, *args):
+        """Remove keyframe from keyed channels
+
+        Args:
+            *args: Description
+        """
+        table = self.get_current_table()
+        keyed, not_keyed = self.get_key_status(table)
+        if keyed:
+            cmu.remove_key(keyed)
+            self.refresh_channels_values()
 
     def copy_all_values(self, *args):
         """Copy all attribute values from curretn channel table
@@ -590,10 +625,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             item = table.item(i, 0)
             attr = table.namespace_sync(
                 item.data(QtCore.Qt.UserRole)["fullName"])
-            # attr = item.data(QtCore.Qt.UserRole)
             self.values_buffer.append(cmds.getAttr(attr))
-            # self.values_buffer.append(cmds.getAttr(attr["fullName"]))
 
+    @utils.one_undo
     def paste_all_values(self, *args):
         """Paste and key values stored in buffer
 
@@ -608,13 +642,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         table = self.get_current_table()
         for i in xrange(table.rowCount()):
             item = table.item(i, 0)
-            # attr = item.data(QtCore.Qt.UserRole)
             attr = table.namespace_sync(
                 item.data(QtCore.Qt.UserRole)["fullName"])
-            # cmds.setAttr(attr["fullName"], self.values_buffer[i])
             cmds.setAttr(attr, self.values_buffer[i])
             cmu.set_key(attr)
-            # cmu.set_key(attr["fullName"])
 
         self.refresh_channels_values()
 

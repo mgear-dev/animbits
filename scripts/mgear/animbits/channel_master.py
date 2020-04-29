@@ -884,6 +884,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             pm.displayWarning("Main Tab Can't be Edited!")
 
 
+def openChannelMaster(*args):
+    pyqt.showDialog(ChannelMaster, dockable=True)
+
+
 if __name__ == "__main__":
 
     from mgear.animbits import channel_master_utils

@@ -822,14 +822,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # check that main tab is not edited
         cur_idx = self.tab_widget.currentIndex()
         if cur_idx >= 1:
-            selected_channels = attribute.getSelectedChannels()
+            # selected_channels = attribute.getSelectedChannels()
+            selected_channels = attribute.get_selected_channels_full_path()
             if not selected_channels:
-                return
-
-            sel = pm.selected()
-            if sel:
-                ctl = sel[0]
-            else:
                 return
 
             # get table config
@@ -838,7 +833,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
             for ch in selected_channels:
                 # get channel data
-                ch_config = cmu.get_single_attribute_config(ctl.name(), ch)
+                ch_parts = ch.split(".")
+                ch_config = cmu.get_single_attribute_config(ch_parts[0],
+                                                            ch_parts[1])
 
                 # check if channel is already in the table
                 ch_name = ch_config["fullName"]
@@ -847,7 +844,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                     config["channels"].append(ch_name)
                     config["channels_data"][ch_name] = ch_config
                 else:
-                    pm.displayWarning("{} already in table!".format())
+                    pm.displayWarning("{} already in table!".format(ch))
 
             # update table with new config
             table.set_table_config(config, self.namespace)

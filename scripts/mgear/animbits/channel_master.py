@@ -64,8 +64,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def add_callback(self):
         self.cb_manager.selectionChangedCB("Channel_Master_selection_CB",
                                            self.selection_change)
-        self.cb_manager.userTimeChangedCB("Channel_Master_userTimeChange_CB",
-                                          self.time_changed)
+        # self.cb_manager.userTimeChangedCB("Channel_Master_userTimeChange_CB",
+        #                                   self.time_changed)
 
     def enterEvent(self, evnt):
         self.refresh_channels_values()
@@ -103,6 +103,12 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             "Channel Full Name", self)
         self.display_fullname_action.setCheckable(True)
         self.display_fullname_action.setShortcut(QtGui.QKeySequence("Ctrl+F"))
+
+        self.scrubbing_update_action = QtWidgets.QAction(
+            "Update Value While Scrubbing", self)
+        self.scrubbing_update_action.setCheckable(True)
+        self.scrubbing_update_action.setShortcut(QtGui.QKeySequence("Ctrl+U"))
+
         self.display_order_default_action = QtWidgets.QAction(
             "Default", self)
         self.display_order_alphabetical_action = QtWidgets.QAction(
@@ -152,6 +158,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.display_menu = self.menu_bar.addMenu("Display")
         self.display_menu.addAction(self.display_fullname_action)
+        self.display_menu.addAction(self.scrubbing_update_action)
         self.display_menu.addSeparator()
         self.order_menu = self.display_menu.addMenu("Order")
         self.order_menu.addAction(self.display_order_default_action)
@@ -297,6 +304,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # actions display
         self.display_fullname_action.triggered.connect(
             self.action_display_fullname)
+        self.scrubbing_update_action.triggered.connect(
+            self.action_scrubbing_update)
         self.display_order_default_action.triggered.connect(
             self.action_default_order)
         self.display_order_alphabetical_action.triggered.connect(
@@ -513,6 +522,14 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.values_buffer = []
 
     # actions
+    def action_scrubbing_update(self):
+        if self.scrubbing_update_action.isChecked():
+            self.cb_manager.userTimeChangedCB(
+                "Channel_Master_userTimeChange_CB",
+                self.time_changed)
+        else:
+            self.cb_manager.removeManagedCB("Channel_Master_userTimeChange_CB")
+
     def action_display_fullname(self):
         """Toggle channel name  from nice name to full name
         """

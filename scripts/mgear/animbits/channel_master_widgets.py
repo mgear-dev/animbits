@@ -7,6 +7,7 @@ from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
 import timeit
+import random
 from functools import partial
 
 from . import channel_master_utils as cmu
@@ -112,6 +113,16 @@ def refresh_key_button_color(button, attr, current_time=False):
             'QPushButton {background-color: #ABA8A6;}')
 
 
+def random_color(min_val=.01, max_val=.6):
+    r = random.uniform(min_val, max_val)
+    g = random.uniform(min_val, max_val)
+    b = random.uniform(min_val, max_val)
+    color = QtGui.QColor()
+
+    color.setRgbF(r, g, b)
+
+    return color
+
 ###################################################
 # Channel Table Class
 ###################################################
@@ -132,24 +143,6 @@ class ChannelTable(QtWidgets.QTableWidget):
     def create_menu(self):
         self.menu = QtWidgets.QMenu(self)
 
-        set_color_action = QtWidgets.QAction('Set Color', self)
-        set_color_action.setIcon(pyqt.get_icon("edit-2"))
-        set_color_action.triggered.connect(self.set_color_slot)
-        self.menu.addAction(set_color_action)
-
-        clear_color_action = QtWidgets.QAction('Clear Color', self)
-        clear_color_action.setIcon(pyqt.get_icon("x-octagon"))
-        clear_color_action.triggered.connect(self.clear_color_slot)
-        self.menu.addAction(clear_color_action)
-        self.menu.addSeparator()
-
-        # if there is no slider in the selected item will print  an info msg
-        set_range_action = QtWidgets.QAction('Set Range', self)
-        set_range_action.setIcon(pyqt.get_icon("sliders"))
-        set_range_action.triggered.connect(self.set_range_slot)
-        self.menu.addAction(set_range_action)
-        self.menu.addSeparator()
-
         reset_value_action = QtWidgets.QAction('Reset Value to Default', self)
         reset_value_action.setIcon(pyqt.get_icon("rewind"))
         reset_value_action.triggered.connect(self.reset_value_slot)
@@ -160,14 +153,44 @@ class ChannelTable(QtWidgets.QTableWidget):
         select_attr_host_action.setIcon(pyqt.get_icon("arrow-up"))
         select_attr_host_action.triggered.connect(self.select_host)
         self.menu.addAction(select_attr_host_action)
+        self.menu.addSeparator()
 
-    def set_color_slot(self):
-        items = self.selectedItems()
+        set_range_action = QtWidgets.QAction('Set Range', self)
+        set_range_action.setIcon(pyqt.get_icon("sliders"))
+        set_range_action.triggered.connect(self.set_range_slot)
+        self.menu.addAction(set_range_action)
+        self.menu.addSeparator()
+
+        self.menu.addSeparator()
+        set_color_action = QtWidgets.QAction('Set Color', self)
+        set_color_action.setIcon(pyqt.get_icon("edit-2"))
+        set_color_action.triggered.connect(self.set_color_slot)
+        self.menu.addAction(set_color_action)
+
+        auto_color_host_action = QtWidgets.QAction('Auto Color by Host', self)
+        auto_color_host_action.setIcon(pyqt.get_icon("edit-3"))
+        auto_color_host_action.triggered.connect(self.auto_color_host_slot)
+        self.menu.addAction(auto_color_host_action)
+
+        auto_color_axis_action = QtWidgets.QAction('Auto Color by Axis', self)
+        auto_color_axis_action.setIcon(pyqt.get_icon("edit-3"))
+        auto_color_axis_action.triggered.connect(self.auto_color_axis_slot)
+        self.menu.addAction(auto_color_axis_action)
+
+        clear_color_action = QtWidgets.QAction('Clear Color', self)
+        clear_color_action.setIcon(pyqt.get_icon("x-octagon"))
+        clear_color_action.triggered.connect(self.clear_color_slot)
+        self.menu.addAction(clear_color_action)
+
+    def set_color_slot(self, items=None, color=None):
+        if not items:
+            items = self.selectedItems()
         if items:
-            color = QtWidgets.QColorDialog.getColor(
-                items[0].background().color(),
-                parent=self,
-                options=QtWidgets.QColorDialog.DontUseNativeDialog)
+            if not color:
+                color = QtWidgets.QColorDialog.getColor(
+                    items[0].background().color(),
+                    parent=self,
+                    options=QtWidgets.QColorDialog.DontUseNativeDialog)
             if not color.isValid():
                 return
 
@@ -176,6 +199,43 @@ class ChannelTable(QtWidgets.QTableWidget):
                 attr_config = itm.data(QtCore.Qt.UserRole)
                 attr_config["color"] = color.getRgbF()
                 itm.setData(QtCore.Qt.UserRole, attr_config)
+
+    def auto_color_host_slot(self):
+        ctls = []
+        ctls_colors = {}
+        # for i in xrange(self.rowCount()):
+        #     itm = self.item(i, 0)
+        for itm in self.selectedItems():
+            attr_config = itm.data(QtCore.Qt.UserRole)
+            ctl = attr_config["ctl"]
+            if ctl not in ctls:
+                ctls.append(ctl)
+                ctls_colors[ctl] = random_color()
+            itm.setBackground(ctls_colors[ctl])
+            attr_config["color"] = ctls_colors[ctl].getRgbF()
+            itm.setData(QtCore.Qt.UserRole, attr_config)
+
+    def auto_color_axis_slot(self):
+        for itm in self.selectedItems():
+            attr_config = itm.data(QtCore.Qt.UserRole)
+            f_name = attr_config["fullName"]
+            colors = [[0.8, 0.0, 0.1],
+                      [0.0, 0.57, 0.0],
+                      [0.0, 0.0, 0.75]]
+
+            color = QtGui.QColor()
+            if f_name.endswith("X"):
+                color.setRgbF(*colors[0])
+            elif f_name.endswith("Y"):
+                color.setRgbF(*colors[1])
+            elif f_name.endswith("Z"):
+                color.setRgbF(*colors[2])
+            else:
+                continue
+
+            itm.setBackground(color)
+            attr_config["color"] = color.getRgbF()
+            itm.setData(QtCore.Qt.UserRole, attr_config)
 
     def select_host(self):
         items = self.selectedItems()

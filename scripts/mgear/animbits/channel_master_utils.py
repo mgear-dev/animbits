@@ -67,8 +67,18 @@ def get_single_attribute_config(node, attr):
     config["ctl"] = pm.NameParser(node).stripNamespace().__str__()
     config["color"] = None  # This is a place holder for the channel UI color
     config["type"] = cmds.attributeQuery(attr, node=node, attributeType=True)
-    config["niceName"] = cmds.attributeQuery(attr, node=node, niceName=True)
-    config["longName"] = cmds.attributeQuery(attr, node=node, longName=True)
+
+    # check it the attr is alias
+    alias = cmds.aliasAttr(node, q=True)
+    if alias and attr in alias:
+        config["niceName"] = attr
+        config["longName"] = attr
+    else:
+        config["niceName"] = cmds.attributeQuery(
+            attr, node=node, niceName=True)
+        config["longName"] = cmds.attributeQuery(
+            attr, node=node, longName=True)
+
     config["fullName"] = config["ctl"] + "." + config["longName"]
     if config["type"] in ATTR_SLIDER_TYPES:
         if cmds.attributeQuery(attr, node=node, maxExists=True):

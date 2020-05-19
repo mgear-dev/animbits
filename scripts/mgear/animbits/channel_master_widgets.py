@@ -277,8 +277,9 @@ class ChannelTable(QtWidgets.QTableWidget):
                     for i in xrange(self.rowCount()):
                         item = self.item(i, 0)
                         attr = item.data(QtCore.Qt.UserRole)
-                        if (self.namespace_sync(attr["fullName"]) ==
-                                self.namespace_sync(attr_config["fullName"])):
+                        if (self.namespace_sync(attr["fullName"])
+                                == self.namespace_sync(
+                                    attr_config["fullName"])):
                             button = self.cellWidget(i, 1)
                             refresh_key_button_color(
                                 button,

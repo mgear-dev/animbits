@@ -109,6 +109,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.scrubbing_update_action.setCheckable(True)
         self.scrubbing_update_action.setShortcut(QtGui.QKeySequence("Ctrl+U"))
 
+        self.display_edit_channel_order_action = QtWidgets.QAction(
+            "Edit Channel Order", self)
+
         self.display_order_default_action = QtWidgets.QAction(
             "Default", self)
         self.display_order_alphabetical_action = QtWidgets.QAction(
@@ -162,6 +165,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.display_menu = self.menu_bar.addMenu("Display")
         self.display_menu.addAction(self.display_fullname_action)
         self.display_menu.addAction(self.scrubbing_update_action)
+        self.display_menu.addSeparator()
+        self.display_menu.addAction(self.display_edit_channel_order_action)
         self.display_menu.addSeparator()
         self.order_menu = self.display_menu.addMenu("Order")
         self.order_menu.addAction(self.display_order_default_action)
@@ -308,6 +313,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # actions display
         self.display_fullname_action.triggered.connect(
             self.action_display_fullname)
+        self.display_edit_channel_order_action.triggered.connect(
+            self.action_edit_channel_order)
         self.scrubbing_update_action.triggered.connect(
             self.action_scrubbing_update)
         self.display_order_default_action.triggered.connect(
@@ -533,6 +540,19 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 self.time_changed)
         else:
             self.cb_manager.removeManagedCB("Channel_Master_userTimeChange_CB")
+
+    def action_edit_channel_order(self):
+        """Show Edit channel order dialog
+        """
+        try:
+            self.channel_dialog.close()
+            self.channel_dialog.deleteLater()
+        except:
+            pass
+        table = self.get_current_table()
+
+        self.channel_dialog = channelOrderDialog(self, table)
+        self.channel_dialog.show()
 
     def action_display_fullname(self):
         """Toggle channel name  from nice name to full name
@@ -924,6 +944,66 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
 def openChannelMaster(*args):
     pyqt.showDialog(ChannelMaster, dockable=True)
+
+
+class channelOrderDialog(QtWidgets.QDialog):
+
+    """Dialog to edit table channel order
+
+    """
+
+    def __init__(self, parent, table):
+        super(channelOrderDialog, self).__init__(parent)
+
+        self.setWindowTitle("Channel Order")
+        self.setMinimumWidth(220)
+        self.setWindowFlags(self.windowFlags()
+                            ^ QtCore.Qt.WindowContextHelpButtonHint)
+        self.table = table
+        self.table_config = self.table.get_table_config()
+        self.channels = self.table_config["channels"]
+
+        self.create_widgets()
+        self.create_layout()
+        self.create_connections()
+
+    def create_widgets(self):
+        self.channel_list_qlist = QtWidgets.QListWidget()
+        self.channel_list_qlist.setSelectionMode(
+            QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.channel_list_qlist.addItems(self.channels)
+        self.channel_list_qlist.setDragDropOverwriteMode(True)
+        self.channel_list_qlist.setDragDropMode(
+            QtWidgets.QAbstractItemView.InternalMove)
+        self.channel_list_qlist.setDefaultDropAction(QtCore.Qt.MoveAction)
+        self.channel_list_qlist.setAlternatingRowColors(True)
+
+        self.apply_btn = QtWidgets.QPushButton("Apply")
+        self.cancel_btn = QtWidgets.QPushButton("Cancel")
+
+    def apply_channel_order(self):
+        qlist = self.channel_list_qlist
+        items = [str(qlist.item(i).text()) for i in range(qlist.count())]
+        self.table_config["channels"] = items
+        self.table.set_table_config(self.table_config)
+        self.close()
+        self.deleteLater()
+
+    def create_layout(self):
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(self.apply_btn)
+        button_layout.addWidget(self.cancel_btn)
+
+        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout.setContentsMargins(2, 2, 2, 2)
+        main_layout.setSpacing(2)
+        main_layout.addWidget(self.channel_list_qlist)
+        main_layout.addLayout(button_layout)
+
+    def create_connections(self):
+        self.cancel_btn.clicked.connect(self.close)
+        self.apply_btn.clicked.connect(self.apply_channel_order)
 
 
 if __name__ == "__main__":

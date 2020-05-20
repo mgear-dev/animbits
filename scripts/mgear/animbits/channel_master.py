@@ -127,6 +127,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.key_all_tabs_action = QtWidgets.QAction(
             "Keyframe All Tabs", self)
         self.key_all_tabs_action.setCheckable(True)
+        self.copypaste_all_channels_action = QtWidgets.QAction(
+            "Copy/Paste All Channels", self)
+        self.copypaste_all_channels_action.setCheckable(True)
 
         self.key_del_frame_action = QtWidgets.QAction(
             "Delete Current Frame Keyframe", self)
@@ -173,6 +176,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.key_menu.addAction(self.key_del_frame_action)
         self.key_menu.addSeparator()
         self.key_menu.addAction(self.key_all_tabs_action)
+        self.key_menu.addAction(self.copypaste_all_channels_action)
 
         self.tab_menu = self.menu_bar.addMenu("Tab")
         self.tab_menu.addAction(self.tab_new_action)
@@ -313,8 +317,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # actions keyframe
         self.key_all_action.triggered.connect(self.key_all)
-        self.key_copy_action.triggered.connect(self.copy_all_values)
-        self.key_paste_action.triggered.connect(self.paste_all_values)
+        self.key_copy_action.triggered.connect(self.copy_channel_values)
+        self.key_paste_action.triggered.connect(self.paste_channel_values)
         self.key_del_frame_action.triggered.connect(self.remove_key_all)
 
         # action tab
@@ -330,8 +334,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.refresh_button.clicked.connect(self.update_main_table)
 
         self.key_all_button.clicked.connect(self.key_all)
-        self.key_copy_button.clicked.connect(self.copy_all_values)
-        self.key_paste_button.clicked.connect(self.paste_all_values)
+        self.key_copy_button.clicked.connect(self.copy_channel_values)
+        self.key_paste_button.clicked.connect(self.paste_channel_values)
 
         self.refresh_node_list_button.clicked.connect(self.refresh_node_list)
         self.new_node_button.clicked.connect(self.create_new_node)
@@ -630,7 +634,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             cmu.remove_key(keyed)
             self.refresh_channels_values()
 
-    def copy_all_values(self, *args):
+    def copy_channel_values(self, *args):
         """Copy all attribute values from curretn channel table
 
         Args:
@@ -638,14 +642,21 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         table = self.get_current_table()
         self.values_buffer = []
-        for i in xrange(table.rowCount()):
-            item = table.item(i, 0)
+        items = []
+
+        if self.copypaste_all_channels_action.isChecked():
+            for i in xrange(table.rowCount()):
+                items.append(table.item(i, 0))
+        else:
+            items = table.selectedItems()
+
+        for item in items:
             attr = table.namespace_sync(
                 item.data(QtCore.Qt.UserRole)["fullName"])
             self.values_buffer.append(cmds.getAttr(attr))
 
     @utils.one_undo
-    def paste_all_values(self, *args):
+    def paste_channel_values(self, *args):
         """Paste and key values stored in buffer
 
         Args:
@@ -656,15 +667,28 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         if not self.values_buffer:
             return
+        items = []
         table = self.get_current_table()
-        for i in xrange(table.rowCount()):
-            item = table.item(i, 0)
-            attr = table.namespace_sync(
-                item.data(QtCore.Qt.UserRole)["fullName"])
-            cmds.setAttr(attr, self.values_buffer[i])
-            cmu.set_key(attr)
+        if self.copypaste_all_channels_action.isChecked():
+            for i in xrange(table.rowCount()):
+                items.append(table.item(i, 0))
 
-        self.refresh_channels_values()
+        else:
+            items = table.selectedItems()
+        if len(items) == len(self.values_buffer):
+            for e, item in enumerate(items):
+                attr = table.namespace_sync(
+                    item.data(QtCore.Qt.UserRole)["fullName"])
+                cmds.setAttr(attr, self.values_buffer[e])
+                cmu.set_key(attr)
+
+            self.refresh_channels_values()
+        else:
+            pm.displayWarning("Stored buffer has {0} values but selected "
+                              "channels number is: {1}. Can't paste "
+                              "values".format(
+                                  str(len(self.values_buffer)),
+                                  str(len(items))))
 
     def refresh_node_list(self):
         """Refresh the channel master node list

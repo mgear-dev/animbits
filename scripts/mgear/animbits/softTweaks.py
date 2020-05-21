@@ -78,6 +78,7 @@ def _createSoftTweakControls(name,
                                icon="diamond",
                                w=size * .8)
         attribute.addAttribute(tweakCtl, "falloff", "float", size)
+        attribute.addAttribute(tweakCtl, "surfaceMode", "bool", False)
 
         if grps:
             if not isinstance(grps, list):
@@ -131,6 +132,7 @@ def _createSoftModTweak(baseCtl,
     mul_node = node.createMulNode(dm_node.outputScaleX,
                                   tweakCtl.attr("falloff"))
     pm.connectAttr(mul_node.outputX, sm[0].falloffRadius)
+    pm.connectAttr(tweakCtl.attr("surfaceMode"), sm[0].falloffMode)
     mulMatrix_node = applyop.gear_mulmatrix_op(tweakCtl.worldMatrix[0],
                                                tweakCtl.parentInverseMatrix[0])
     pm.connectAttr(mulMatrix_node.output, sm[0].weightedMatrix)

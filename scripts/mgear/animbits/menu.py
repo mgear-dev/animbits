@@ -1,20 +1,37 @@
 import mgear.menu
-from mgear.animbits import softTweaks
-from mgear.animbits import channel_master
-from mgear.animbits.cache_manager.dialog import run_cache_mamanger
-from mgear.core import attribute
 
 
 def install():
     """Install Skinning submenu
     """
     commands = (
-        ("Channel Master", channel_master.openChannelMaster),
+        ("Channel Master", str_openChannelMaster),
         ("-----", None),
-        ("Soft Tweaks", softTweaks.openSoftTweakManager),
-        ("Cache Manager", run_cache_mamanger),
+        ("Soft Tweaks", str_openSoftTweakManager),
+        ("Cache Manager", str_run_cache_mamanger),
         ("-----", None),
-        ("Smart Reset Attribute/SRT", attribute.smart_reset)
+        ("Smart Reset Attribute/SRT", str_smart_reset)
     )
 
     mgear.menu.install("Animbits", commands)
+
+
+str_openChannelMaster = """
+from mgear.animbits import channel_master
+channel_master.openChannelMaster()
+"""
+
+str_openSoftTweakManager = """
+from mgear.animbits import softTweaks
+softTweaks.openSoftTweakManage()
+"""
+
+str_run_cache_mamanger = """
+from mgear.animbits.cache_manager.dialog import run_cache_mamanger
+run_cache_mamanger()
+"""
+
+str_smart_reset = """
+from mgear.core import attribute
+attribute.smart_resets()
+"""

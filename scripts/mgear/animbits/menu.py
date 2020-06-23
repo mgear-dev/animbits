@@ -23,7 +23,7 @@ channel_master.openChannelMaster()
 
 str_openSoftTweakManager = """
 from mgear.animbits import softTweaks
-softTweaks.openSoftTweakManage()
+softTweaks.openSoftTweakManager()
 """
 
 str_run_cache_mamanger = """
@@ -33,5 +33,5 @@ run_cache_mamanger()
 
 str_smart_reset = """
 from mgear.core import attribute
-attribute.smart_resets()
+attribute.smart_reset()
 """

@@ -112,6 +112,13 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.display_edit_channel_order_action = QtWidgets.QAction(
             "Edit Channel Order", self)
 
+        self.display_sync_graph_action = QtWidgets.QAction(
+            "Sync with Graph Editor", self)
+        self.display_sync_graph_action.setIcon(pyqt.get_icon("activity"))
+        self.display_auto_sync_graph_action = QtWidgets.QAction(
+            "Auto Sync with Graph Editor", self)
+        self.display_auto_sync_graph_action.setCheckable(True)
+
         self.display_order_default_action = QtWidgets.QAction(
             "Default", self)
         self.display_order_alphabetical_action = QtWidgets.QAction(
@@ -163,6 +170,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_menu.addAction(self.file_import_add_action)
 
         self.display_menu = self.menu_bar.addMenu("Display")
+        self.display_menu.addAction(self.display_sync_graph_action)
+        self.display_menu.addAction(self.display_auto_sync_graph_action)
+        self.display_menu.addSeparator()
         self.display_menu.addAction(self.display_fullname_action)
         self.display_menu.addAction(self.scrubbing_update_action)
         self.display_menu.addSeparator()
@@ -313,6 +323,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # actions display
         self.display_fullname_action.triggered.connect(
             self.action_display_fullname)
+        self.display_sync_graph_action.triggered.connect(
+            self.action_sync_graph_editor)
         self.display_edit_channel_order_action.triggered.connect(
             self.action_edit_channel_order)
         self.scrubbing_update_action.triggered.connect(
@@ -561,6 +573,16 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         for i in xrange(table.rowCount()):
             table.set_channel_fullname(
                 i, self.display_fullname_action.isChecked())
+
+    def action_sync_graph_editor(self):
+        table = self.get_current_table()
+        attr_configs = []
+        for i in xrange(table.rowCount()):
+            item = table.item(i, 0)
+            ac = item.data(QtCore.Qt.UserRole)
+            attr_configs.append(ac)
+
+        cmu.sync_graph_editor(attr_configs)
 
     def action_default_order(self):
         """reset the channels to the default order

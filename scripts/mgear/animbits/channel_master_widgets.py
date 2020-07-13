@@ -139,6 +139,7 @@ class ChannelTable(QtWidgets.QTableWidget):
         self.create_menu()
         self.setup_table()
         self.config_table()
+        self.itemSelectionChanged.connect(self.auto_sync_graph_editor)
 
     def create_menu(self):
         self.menu = QtWidgets.QMenu(self)
@@ -147,6 +148,13 @@ class ChannelTable(QtWidgets.QTableWidget):
         reset_value_action.setIcon(pyqt.get_icon("rewind"))
         reset_value_action.triggered.connect(self.reset_value_slot)
         self.menu.addAction(reset_value_action)
+        self.menu.addSeparator()
+
+        sync_graph_editor_action = QtWidgets.QAction(
+            'Sync Selected with Graph Editor', self)
+        sync_graph_editor_action.setIcon(pyqt.get_icon("activity"))
+        sync_graph_editor_action.triggered.connect(self.sync_graph_editor)
+        self.menu.addAction(sync_graph_editor_action)
         self.menu.addSeparator()
 
         select_attr_host_action = QtWidgets.QAction('Select Host', self)
@@ -236,6 +244,20 @@ class ChannelTable(QtWidgets.QTableWidget):
             itm.setBackground(color)
             attr_config["color"] = color.getRgbF()
             itm.setData(QtCore.Qt.UserRole, attr_config)
+
+    def sync_graph_editor(self):
+        items = self.selectedItems()
+        attr_configs = []
+        if items:
+            for itm in items:
+                ac = itm.data(QtCore.Qt.UserRole)
+                attr_configs.append(ac)
+        cmu.sync_graph_editor(attr_configs)
+
+    def auto_sync_graph_editor(self):
+        chan_mast = self.parent().parent().parent()
+        if chan_mast.display_auto_sync_graph_action.isChecked():
+            self.sync_graph_editor()
 
     def select_host(self):
         items = self.selectedItems()

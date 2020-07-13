@@ -145,6 +145,63 @@ def reset_attribute(attr_config):
 
     attribute.reset_selected_channels_value(objects=[obj], attributes=[attr])
 
+
+def sync_graph_editor2(attr_configs):
+    """sync the channels in the graph editor
+
+    Args:
+        attr_configs (list): list of attribute configuration
+    """
+    # select channel host controls
+    ctls = []
+    for ac in attr_configs:
+        ctl = ac["ctl"]
+        if ctl not in ctls:
+            ctls.append(ctl)
+
+    pm.select(ctls, r=True)
+
+    # filter curves in graph editor
+    pm.selectionConnection(
+        "graphEditor1FromOutliner", e=True, clear=True)
+    for ac in attr_configs:
+        attr = ac["fullName"]
+        cmds.selectionConnection(
+            "graphEditor1FromOutliner", e=True, select=attr)
+
+
+def sync_graph_editor(attr_configs):
+    """sync the channels in the graph editor
+
+    Args:
+        attr_configs (list): list of attribute configuration
+    """
+    # select channel host controls
+    ctls = []
+    for ac in attr_configs:
+        ctl = ac["ctl"]
+        if ctl not in ctls:
+            ctls.append(ctl)
+
+    pm.select(ctls, r=True)
+
+    # filter curves in graph editor\
+    cnxs = []
+    for ac in attr_configs:
+        attr = ac["fullName"]
+        cnxs.append(attr)
+
+    def ge_update():
+        pm.selectionConnection(
+            "graphEditor1FromOutliner", e=True, clear=True)
+        for c in cnxs:
+            cmds.selectionConnection(
+                "graphEditor1FromOutliner", e=True, select=c)
+
+    # we need to evalDeferred to allow grapheditor update the selection
+    # highlight in grapheditor outliner
+    pm.evalDeferred(ge_update)
+
 ################
 # Keyframe utils
 ################

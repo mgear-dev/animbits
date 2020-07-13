@@ -146,7 +146,7 @@ def reset_attribute(attr_config):
     attribute.reset_selected_channels_value(objects=[obj], attributes=[attr])
 
 
-def sync_graph_editor2(attr_configs):
+def sync_graph_editor(attr_configs, namespace=None):
     """sync the channels in the graph editor
 
     Args:
@@ -157,30 +157,8 @@ def sync_graph_editor2(attr_configs):
     for ac in attr_configs:
         ctl = ac["ctl"]
         if ctl not in ctls:
-            ctls.append(ctl)
-
-    pm.select(ctls, r=True)
-
-    # filter curves in graph editor
-    pm.selectionConnection(
-        "graphEditor1FromOutliner", e=True, clear=True)
-    for ac in attr_configs:
-        attr = ac["fullName"]
-        cmds.selectionConnection(
-            "graphEditor1FromOutliner", e=True, select=attr)
-
-
-def sync_graph_editor(attr_configs):
-    """sync the channels in the graph editor
-
-    Args:
-        attr_configs (list): list of attribute configuration
-    """
-    # select channel host controls
-    ctls = []
-    for ac in attr_configs:
-        ctl = ac["ctl"]
-        if ctl not in ctls:
+            if namespace:
+                ctl = namespace + ctl
             ctls.append(ctl)
 
     pm.select(ctls, r=True)
@@ -189,6 +167,8 @@ def sync_graph_editor(attr_configs):
     cnxs = []
     for ac in attr_configs:
         attr = ac["fullName"]
+        if namespace:
+            attr = namespace + attr
         cnxs.append(attr)
 
     def ge_update():

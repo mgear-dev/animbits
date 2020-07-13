@@ -252,7 +252,7 @@ class ChannelTable(QtWidgets.QTableWidget):
             for itm in items:
                 ac = itm.data(QtCore.Qt.UserRole)
                 attr_configs.append(ac)
-        cmu.sync_graph_editor(attr_configs)
+        cmu.sync_graph_editor(attr_configs, self.namespace)
 
     def auto_sync_graph_editor(self):
         chan_mast = self.parent().parent().parent()

@@ -582,7 +582,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             ac = item.data(QtCore.Qt.UserRole)
             attr_configs.append(ac)
 
-        cmu.sync_graph_editor(attr_configs)
+        cmu.sync_graph_editor(attr_configs, self.namespace)
 
     def action_default_order(self):
         """reset the channels to the default order

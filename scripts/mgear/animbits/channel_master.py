@@ -965,7 +965,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
 
 def openChannelMaster(*args):
-    pyqt.showDialog(ChannelMaster, dockable=True)
+    return pyqt.showDialog(ChannelMaster, dockable=True)
 
 
 class channelOrderDialog(QtWidgets.QDialog):

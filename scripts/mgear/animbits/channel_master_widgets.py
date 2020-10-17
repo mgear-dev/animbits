@@ -6,7 +6,6 @@ from mgear.core import widgets
 from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
-import timeit
 import random
 from functools import partial
 
@@ -132,6 +131,7 @@ class ChannelTable(QtWidgets.QTableWidget):
 
     def __init__(self, chan_config=None, namespace=None, parent=None):
         super(ChannelTable, self).__init__(parent)
+        self._fixed_square = pyqt.dpi_scale(17)
         self.chan_config = chan_config
         self.trigger_value_update = True
         self.namespace = namespace
@@ -310,16 +310,17 @@ class ChannelTable(QtWidgets.QTableWidget):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
                            QtWidgets.QSizePolicy.Expanding)
         self.setColumnCount(3)
-        self.verticalHeader().setVisible(False)
-        self.horizontalHeader().setVisible(False)
-        header_view = self.horizontalHeader()
         self.setStyleSheet(TABLE_STYLE)
+        horizontal_header_view = self.horizontalHeader()
+        vertical_header_view = self.verticalHeader()
+        horizontal_header_view.setVisible(False)
+        vertical_header_view.setVisible(False)
+        vertical_header_view.setMinimumSectionSize(self._fixed_square)
+        horizontal_header_view.setMinimumSectionSize(self._fixed_square)
 
-        header_view.resizeSection(0, 80)
-        header_view.setSectionResizeMode(
+        horizontal_header_view.setSectionResizeMode(
             0, QtWidgets.QHeaderView.ResizeToContents)
-        header_view.resizeSection(1, 17)
-        header_view.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        horizontal_header_view.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
 
     def contextMenuEvent(self, event):
         if self.selectedItems():
@@ -404,6 +405,13 @@ class ChannelTable(QtWidgets.QTableWidget):
                                                    sliderRange=(at["min"],
                                                                 at["max"]))
 
+                ch_ctl.setMaximumHeight(self._fixed_square)
+                ch_ctl.setMinimumHeight(self._fixed_square)
+                ch_ctl.sld.setMaximumHeight(self._fixed_square)
+                ch_ctl.sld.setMinimumHeight(self._fixed_square)
+                ch_ctl.input.setMaximumHeight(self._fixed_square)
+                ch_ctl.input.setMinimumHeight(self._fixed_square)
+
                 ch_ctl.valueChanged.connect(
                     partial(value_update, at))
                 ch_ctl.sliderPressed.connect(open_undo_chunk)
@@ -452,7 +460,7 @@ class ChannelTable(QtWidgets.QTableWidget):
             key_button = self.create_key_button(at)
 
             self.insertRow(i)
-            self.setRowHeight(i, 17)
+            self.setRowHeight(i, self._fixed_square)
             self.setItem(i, 0, label_item)
             self.setCellWidget(i, 1, key_button)
             self.setCellWidget(i, 2, ch_ctl)
@@ -460,6 +468,8 @@ class ChannelTable(QtWidgets.QTableWidget):
             self.track_widgets.append([key_button, ch_ctl])
 
             i += 1
+
+        self.setColumnWidth(1, self._fixed_square)
 
     def update_table(self):
         """update table usin from the stored channel configuration
@@ -572,7 +582,7 @@ class ChannelTable(QtWidgets.QTableWidget):
         Returns:
             QPushButton: The keyframe button
         """
-        button = create_button()
+        button = create_button(size=self._fixed_square)
         attr = self.namespace_sync(item_data["fullName"])
         refresh_key_button_color(button, attr)
 

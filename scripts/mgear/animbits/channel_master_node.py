@@ -112,7 +112,6 @@ def export_data(node, tab=None, filePath=None):
     if not filePath:
         startDir = pm.workspace(q=True, rootDirectory=True)
         filePath = pm.fileDialog2(
-            dialogStyle=2,
             fileMode=0,
             startingDirectory=startDir,
             fileFilter='Channel Master Configuration .cmc (*%s)' % ".cmc")
@@ -139,7 +138,6 @@ def import_data(filePath=None, node=None, add_data=False):
     if not filePath:
         startDir = pm.workspace(q=True, rootDirectory=True)
         filePath = pm.fileDialog2(
-            dialogStyle=2,
             fileMode=1,
             startingDirectory=startDir,
             fileFilter='Channel Master Configuration .cmc (*%s)' % ".cmc")

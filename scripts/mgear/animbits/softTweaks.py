@@ -426,7 +426,6 @@ def exportConfiguration(softMods, filePath=None):
     data_string = json.dumps(configDict, indent=4, sort_keys=True)
     if not filePath:
         filePath = pm.fileDialog2(
-            dialogStyle=2,
             fileMode=0,
             startingDirectory=startDir,
             fileFilter='SoftMod Tweaks configuration .smt (*%s)' % ".smt")
@@ -486,7 +485,6 @@ def importConfigurationFromFile(filePath=None):
     if not filePath:
         startDir = pm.workspace(q=True, rootDirectory=True)
         filePath = pm.fileDialog2(
-            dialogStyle=2,
             fileMode=1,
             startingDirectory=startDir,
             fileFilter='SoftMod Tweaks configuration .smt (*%s)' % ".smt")
